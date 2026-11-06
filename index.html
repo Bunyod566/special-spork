@@ -1719,6 +1719,7 @@
 
         function renderCourseVideo(course) {
             const v = parseCourseVideo(course.videoUrl);
+            if (!v) return '';
             const box = 'aspect-video w-full rounded-3xl overflow-hidden shadow-lg bg-black';
             let body, badge = '';
             if (v && v.type === 'youtube') {
@@ -1751,6 +1752,231 @@
                     </div>`;
         }
 
+        // ===== VIDEO-DARSLAR (animatsiyali dars-videolar: so'zlar, qoidalar, mashqlar) =====
+        const EN_VOCAB = [
+            ["Salomlashish", [["hello", "salom", "Hello, how are you?"], ["goodbye", "xayr", "Goodbye, see you tomorrow!"], ["please", "iltimos", "Please, sit down."], ["thank you", "rahmat", "Thank you very much."], ["sorry", "kechirasiz", "Sorry, I am late."], ["welcome", "xush kelibsiz", "Welcome to our school."]]],
+            ["Oila", [["mother", "ona", "My mother is a doctor."], ["father", "ota", "My father works in an office."], ["brother", "aka / uka", "I have one brother."], ["sister", "opa / singil", "My sister likes music."], ["grandmother", "buvi", "My grandmother lives in a village."], ["child", "bola", "The child is playing."]]],
+            ["Ovqat", [["bread", "non", "I eat bread every morning."], ["water", "suv", "Can I have some water?"], ["apple", "olma", "This apple is sweet."], ["rice", "guruch", "We cook rice for dinner."], ["meat", "go'sht", "He does not eat meat."], ["tea", "choy", "I drink tea with lemon."]]],
+            ["Sayohat", [["ticket", "chipta", "I need a train ticket."], ["airport", "aeroport", "The airport is far from here."], ["hotel", "mehmonxona", "We stay in a small hotel."], ["passport", "pasport", "Do not forget your passport."], ["map", "xarita", "Look at the map."], ["luggage", "yuk", "My luggage is heavy."]]],
+            ["Ish", [["job", "ish, kasb", "She has a good job."], ["office", "ofis", "I go to the office by bus."], ["meeting", "yig'ilish", "The meeting starts at nine."], ["salary", "maosh", "His salary is high."], ["colleague", "hamkasb", "My colleague helps me."], ["deadline", "topshirish muddati", "The deadline is Friday."]]],
+            ["Vaqt", [["morning", "ertalab", "Good morning!"], ["evening", "kechqurun", "We walk in the evening."], ["week", "hafta", "There are seven days in a week."], ["month", "oy", "This month is busy."], ["yesterday", "kecha", "Yesterday was Monday."], ["tomorrow", "ertaga", "See you tomorrow."]]],
+            ["Uy", [["kitchen", "oshxona", "Mom is in the kitchen."], ["bedroom", "yotoqxona", "My bedroom is small."], ["window", "deraza", "Open the window, please."], ["door", "eshik", "Close the door."], ["table", "stol", "The book is on the table."], ["chair", "stul", "Take a chair."]]],
+            ["Sifatlar", [["big", "katta", "It is a big city."], ["small", "kichik", "I have a small dog."], ["beautiful", "chiroyli", "The garden is beautiful."], ["difficult", "qiyin", "This test is difficult."], ["easy", "oson", "The question is easy."], ["important", "muhim", "Health is important."]]]
+        ];
+        const EN_GRAM = [
+            { t: "To be: am / is / are", rule: "“Bo'lmoq” fe'li shaxsga qarab o'zgaradi: I — am, he / she / it — is, we / you / they — are.", f: "I am · He/She/It is · We/You/They are", ex: [["I am a student.", "Men talabaman."], ["She is a teacher.", "U o'qituvchi."], ["They are friends.", "Ular do'stlar."]], q: ["We ___ happy. (am / is / are)", "We are happy."] },
+            { t: "Present Simple", rule: "Odatiy, doimiy harakatlar uchun. He / she / it bilan fe'lga -s qo'shiladi. Savol va inkorda do / does ishlatiladi.", f: "V / V+s  ·  Do/Does + subject + V?", ex: [["I work every day.", "Men har kuni ishlayman."], ["She works in a bank.", "U bankda ishlaydi."], ["Does he work here?", "U shu yerda ishlaydimi?"]], q: ["She ___ (read) books every night.", "She reads books every night."] },
+            { t: "Artikllar: a / an / the", rule: "A — undosh tovushdan oldin, an — unli tovushdan oldin (bitta, noaniq narsa). The — aniq, ma'lum narsa uchun.", f: "a + undosh · an + unli · the + aniq narsa", ex: [["a book", "bitta kitob"], ["an apple", "bitta olma"], ["The sun is hot.", "Quyosh issiq."]], q: ["I have ___ umbrella. (a / an)", "I have an umbrella."] },
+            { t: "Ko'plik shakli", rule: "Ko'plik odatda -s bilan yasaladi. s, x, ch, sh dan keyin -es; undoshdan keyingi y — ies. Ba'zilari qoidasiz: man — men, child — children.", f: "+s · +es · y → ies · irregular", ex: [["one cat → two cats", "mushuk → mushuklar"], ["one box → two boxes", "quti → qutilar"], ["one child → two children", "bola → bolalar"]], q: ["One city → two ___", "Two cities."] },
+            { t: "Past Simple", rule: "O'tgan zamonda tugagan harakat. Muntazam fe'llarga -ed qo'shiladi, noto'g'rilari o'zgaradi (go — went). Savol va inkorda did + asosiy fe'l.", f: "V+ed / V2  ·  Did + subject + V?", ex: [["I visited Samarkand last year.", "Men o'tgan yili Samarqandga bordim."], ["She went home early.", "U uyga erta ketdi."], ["Did you see him?", "Siz uni ko'rdingizmi?"]], q: ["Yesterday I ___ (go) to school.", "Yesterday I went to school."] },
+            { t: "Present Continuous", rule: "Hozir sodir bo'layotgan harakat uchun: am / is / are + fe'l-ing.", f: "am / is / are + V-ing", ex: [["I am reading a book.", "Men kitob o'qiyapman."], ["He is sleeping.", "U uxlayapti."], ["They are playing football.", "Ular futbol o'ynayapti."]], q: ["She ___ (cook) now.", "She is cooking now."] },
+            { t: "Kelasi zamon: will", rule: "Kelajakdagi qaror yoki va'da uchun will + asosiy fe'l ishlatiladi.", f: "will + V", ex: [["I will call you tomorrow.", "Ertaga sizga qo'ng'iroq qilaman."], ["It will rain today.", "Bugun yomg'ir yog'adi."], ["We will win.", "Biz g'alaba qozonamiz."]], q: ["Tomorrow I ___ (visit) my aunt.", "Tomorrow I will visit my aunt."] },
+            { t: "Qiyoslash darajasi", rule: "Qisqa sifatlarga -er + than qo'shiladi, uzun sifatlar oldidan more qo'yiladi. Istisno: good — better, bad — worse.", f: "adj+er than · more + adj than", ex: [["He is taller than me.", "U mendan balandroq."], ["This book is more interesting.", "Bu kitob qiziqarliroq."], ["Today is better than yesterday.", "Bugun kechagidan yaxshiroq."]], q: ["My bag is ___ (heavy) than yours.", "My bag is heavier than yours."] }
+        ];
+        const ES_VOCAB = [
+            ["Salomlashish", [["hola", "salom", "¡Hola! ¿Cómo estás?"], ["adiós", "xayr", "Adiós, hasta mañana."], ["gracias", "rahmat", "Muchas gracias."], ["por favor", "iltimos", "Un café, por favor."], ["buenos días", "xayrli tong", "Buenos días, señora."], ["lo siento", "kechirasiz", "Lo siento, llego tarde."]]],
+            ["Ovqat", [["pan", "non", "Quiero pan."], ["agua", "suv", "Un vaso de agua."], ["manzana", "olma", "La manzana es dulce."], ["arroz", "guruch", "Comemos arroz."], ["carne", "go'sht", "No como carne."], ["té", "choy", "Bebo té caliente."]]],
+            ["Sayohat", [["billete", "chipta", "Necesito un billete."], ["aeropuerto", "aeroport", "El aeropuerto está lejos."], ["hotel", "mehmonxona", "El hotel es bonito."], ["pasaporte", "pasport", "Tengo mi pasaporte."], ["mapa", "xarita", "Mira el mapa."], ["maleta", "chamadon", "Mi maleta es grande."]]]
+        ];
+        const ES_GRAM = [
+            { t: "Artikllar: el / la", rule: "Ispan tilida har bir ot jinsga ega: erkak — el, ayol — la. Ko'plikda los / las.", f: "el + erkak · la + ayol · los / las", ex: [["el libro", "kitob"], ["la casa", "uy"], ["los niños", "bolalar"]], q: ["___ mesa (stol, ayol jinsi)", "la mesa"] },
+            { t: "Ser — bo'lmoq", rule: "Ser — doimiy xususiyat va kim ekanlikni bildiradi: yo soy, tú eres, él / ella es, nosotros somos, ellos son.", f: "soy · eres · es · somos · son", ex: [["Yo soy estudiante.", "Men talabaman."], ["Ella es profesora.", "U o'qituvchi."], ["Nosotros somos amigos.", "Biz do'stlarmiz."]], q: ["Tú ___ de Uzbekistán. (ser)", "Tú eres de Uzbekistán."] }
+        ];
+        const OUTLINES = {
+            programming: [["O'zgaruvchilar va turlar", ["O'zgaruvchi qiymat saqlaydi: name = 'Ali'", "Asosiy turlar: int, float, str, bool", "type() funksiyasi turni ko'rsatadi"]], ["Shartlar: if / else", ["if shart bajarilsa kod ishlaydi", "else — aks holda, elif — qo'shimcha shart", "Taqqoslash belgilari: ==, !=, >, <"]], ["Sikllar", ["for — ro'yxat elementlari bo'ylab yuradi", "while — shart to'g'ri bo'lguncha takrorlaydi", "break siklni to'xtatadi"]], ["Funksiyalar", ["def bilan funksiya e'lon qilinadi", "Parametr qabul qilib, return bilan qiymat qaytaradi", "Funksiya kodni qayta ishlatishga yordam beradi"]]],
+            mobile: [["Flutter va widgetlar", ["Flutter — Dart tilidagi interfeys kutubxonasi", "Hamma narsa widget: Text, Row, Column", "Widgetlar daraxt shaklida joylashadi"]], ["Stateless va Stateful", ["StatelessWidget o'zgarmaydi", "StatefulWidget setState() bilan yangilanadi", "Holat o'zgarsa ekran qayta chiziladi"]], ["Navigatsiya", ["Navigator.push yangi ekranni ochadi", "Navigator.pop orqaga qaytaradi", "Ekranlar orasida ma'lumot uzatish mumkin"]], ["API bilan ishlash", ["http paketi orqali so'rov yuboriladi", "JSON ma'lumot Dart obyektiga aylantiriladi", "FutureBuilder kutish holatini ko'rsatadi"]]],
+            data: [["Ma'lumot bilan tanishuv", ["Data Science — ma'lumotdan xulosa chiqarish", "pandas jadvallar (DataFrame) bilan ishlaydi", "Avval ma'lumotni tozalash kerak"]], ["Vizualizatsiya", ["matplotlib grafik chizadi", "Chiziqli, ustunli va doira diagrammalar bor", "Grafikka tushunarli sarlavha qo'ying"]], ["Machine Learning asoslari", ["Model ma'lumotdan o'rganadi", "Ma'lumot train va test qismlarga bo'linadi", "Aniqlik test ma'lumotida tekshiriladi"]], ["Birinchi model", ["scikit-learn tayyor modellar beradi", "fit() o'rgatadi, predict() bashorat qiladi", "Natija accuracy bilan baholanadi"]]],
+            uiux: [["UX nima?", ["UX — foydalanuvchi tajribasi", "Avval foydalanuvchi muammosini tushuning", "Oddiy va tushunarli interfeys — yaxshi UX"]], ["Figma bilan tanishuv", ["Frame — dizayn maydoni", "Rectangle, Text, Auto layout asosiy vositalar", "Komponentlar takroriy elementlarni tejaydi"]], ["Rang va shrift", ["Asosiy rang + 1-2 qo'shimcha rang", "Matn va fon kontrasti yetarli bo'lsin", "Ko'pi bilan 2 xil shrift ishlating"]], ["Prototip", ["Ekranlarni bir-biriga bog'lang", "Foydalanuvchi yo'lini sinab ko'ring", "Fikr-mulohazaga qarab yaxshilang"]]],
+            graphic: [["Kompozitsiya", ["Muvozanat va diqqat markazi", "Uchdan bir qoidasi", "Bo'sh joy ham dizaynning qismi"]], ["Photoshop qatlamlari", ["Har element alohida qatlamda bo'ladi", "Maska rasmni buzmasdan yashiradi", "Qatlamlarni nomlab boring"]], ["Illustrator va vektor", ["Vektor kattalashganda sifati buzilmaydi", "Pen tool bilan shakl chiziladi", "Logotip uchun vektor ishlatiladi"]], ["Eksport", ["Veb uchun PNG/JPG, bosma uchun PDF", "Bosma ishlarda CMYK rang rejimi", "Fayl o'lchamini tekshiring"]]],
+            smm: [["Maqsadli auditoriya", ["Auditoriya yoshi, qiziqishi va muammosini aniqlang", "Har platforma uchun alohida yondashuv kerak", "Auditoriya portretini tuzing"]], ["Kontent reja", ["Haftalik reja tuzing", "Foydali, qiziqarli va sotuvchi kontentni aralashtiring", "Doimiy vaqtda joylashing"]], ["Reklama", ["Maqsad: xabardorlik yoki sotuv", "Byudjet va auditoriya tanlanadi", "Bir nechta reklama variantini sinang"]], ["Tahlil", ["Qamrov, layk, kommentariya — asosiy ko'rsatkichlar", "Eng yaxshi kontentni takrorlang", "Natijaga qarab rejani yangilang"]]],
+            business: [["Biznes g'oya", ["G'oya real muammoni hal qilsin", "Mijozlardan so'rab tekshiring", "G'oyani bitta jumlada tushuntiring"]], ["Biznes model", ["Kimga, nima va qanday sotasiz", "Daromad manbalarini yozing", "Asosiy xarajatlarni hisoblang"]], ["Marketing", ["Mijozni qanday topishni belgilang", "Narx qiymatga mos bo'lsin", "Birinchi 10 mijozga e'tibor bering"]], ["Birinchi qadamlar", ["Kichik sinov (MVP) bilan boshlang", "Natijani o'lchang", "Xatolardan o'rganing"]]],
+            finance: [["Pul oqimi", ["Daromad va xarajatni yozib boring", "Pul oqimi musbat bo'lishi kerak", "Zaxira jamg'armasi tuzing"]], ["Buxgalteriya asoslari", ["Aktiv, majburiyat, kapital", "Har operatsiya hujjat bilan tasdiqlanadi", "Debet va kredit"]], ["Byudjet", ["50/30/20 qoidasi", "Majburiy va ixtiyoriy xarajatlarni ajrating", "Oy oxirida tahlil qiling"]], ["Soliqlar", ["Soliq turlari bilan tanishing", "Muddatlarni o'tkazib yubormang", "Hisobotlarni vaqtida topshiring"]]]
+        };
+        const TOPIC_GRAD = { english: 'from-amber-500 to-orange-800', spanish: 'from-rose-600 to-red-900', programming: 'from-blue-700 to-indigo-900', mobile: 'from-cyan-600 to-blue-900', data: 'from-teal-600 to-cyan-900', uiux: 'from-pink-600 to-purple-800', graphic: 'from-fuchsia-600 to-purple-900', smm: 'from-fuchsia-600 to-rose-800', business: 'from-emerald-600 to-teal-900', finance: 'from-green-600 to-emerald-900' };
+        const LP_UI = {
+            uz: { head: "Video-darslar", free: "Bepul", lockT: "Bu dars kursni sotib olgan yoki PRO foydalanuvchilar uchun ochiq", add: "Savatchaga qo'shish", voice: "Ovoz", scene: "Sahna" },
+            en: { head: "Video lessons", free: "Free", lockT: "This lesson is available to course buyers and PRO users", add: "Add to cart", voice: "Voice", scene: "Scene" },
+            ru: { head: "Видеоуроки", free: "Бесплатно", lockT: "Этот урок доступен тем, кто купил курс, и PRO-пользователям", add: "В корзину", voice: "Голос", scene: "Сцена" }
+        };
+        const LP_SCENE_MS = 5000;
+        let lp = { course: null, lessons: [], lens: [], i: 0, s: 0, el: 0, scenes: null, playing: false, timer: null, voice: true };
+        const lpLab = a => a[{ uz: 0, en: 1, ru: 2 }[currentLang] ?? 0];
+
+        function lessonTopic(c) {
+            const t = String(c.title || '');
+            if (/ingliz|english/i.test(t)) return 'english';
+            if (/ispan|spanish/i.test(t)) return 'spanish';
+            if (/data science|machine/i.test(t)) return 'data';
+            if (/flutter|mobile/i.test(t)) return 'mobile';
+            if (/full-?stack|python|react|web/i.test(t)) return 'programming';
+            if (/ui\/ux|figma/i.test(t)) return 'uiux';
+            if (/grafik|photoshop|illustrator/i.test(t)) return 'graphic';
+            if (/smm|marketing/i.test(t)) return 'smm';
+            if (/finans|buxgalter/i.test(t)) return 'finance';
+            return 'business';
+        }
+        function buildLessons(course) {
+            const tp = lessonTopic(course);
+            if (tp === 'english' || tp === 'spanish') {
+                const L = tp === 'english' ? { v: EN_VOCAB, g: EN_GRAM, lang: 'en-US' } : { v: ES_VOCAB, g: ES_GRAM, lang: 'es-ES' };
+                const out = [], n = Math.max(L.v.length, L.g.length);
+                for (let i = 0; i < n; i++) {
+                    if (L.v[i]) out.push({ type: 'vocab', title: "Yangi so'zlar: " + L.v[i][0], data: L.v[i][1], lang: L.lang });
+                    if (L.g[i]) out.push({ type: 'rule', title: "Qoida: " + L.g[i].t, data: L.g[i], lang: L.lang });
+                }
+                return out;
+            }
+            return (OUTLINES[tp] || OUTLINES.business).map(o => ({ type: 'outline', title: o[0], data: o[1] }));
+        }
+        function lessonScenes(l, idx) {
+            const E = escapeHtml, S = [];
+            const cap = (txt) => `<div class="text-xs uppercase tracking-widest text-white/70 mb-3">${txt}</div>`;
+            S.push({ h: cap(`${lpLab(['Dars', 'Lesson', 'Урок'])} ${idx + 1}`) + `<h4 class="text-2xl sm:text-4xl font-black leading-tight">${E(l.title)}</h4>` });
+            if (l.type === 'vocab') {
+                l.data.forEach((w, k) => S.push({
+                    say: [w[0], w[2]],
+                    h: cap(`${lpLab(["Yangi so'z", 'New word', 'Новое слово'])} ${k + 1}/${l.data.length}`) +
+                        `<div class="text-4xl sm:text-6xl font-black mb-2">${E(w[0])} <button data-say="${E(w[0])}" onclick="lpSay(this.dataset.say)" class="ml-2 text-xl align-middle opacity-80 hover:opacity-100"><i class="fa-solid fa-volume-high"></i></button></div>
+                         <div class="text-xl sm:text-3xl font-bold text-yellow-200 mb-4">${E(w[1])}</div>
+                         <div class="text-sm sm:text-lg italic text-white/90">“${E(w[2])}”</div>`
+                }));
+                S.push({ say: [l.data.map(w => w[0]).join('. ')], h: cap(lpLab(['Takrorlash', 'Review', 'Повторение'])) + `<div class="grid grid-cols-2 gap-x-8 gap-y-2 text-left text-sm sm:text-xl">${l.data.map(w => `<div><b>${E(w[0])}</b> <span class="text-white/70">— ${E(w[1])}</span></div>`).join('')}</div>` });
+            } else if (l.type === 'rule') {
+                const d = l.data;
+                S.push({ h: cap(lpLab(['Qoida', 'Rule', 'Правило'])) + `<p class="text-base sm:text-2xl font-semibold leading-relaxed max-w-2xl">${E(d.rule)}</p>` });
+                S.push({ h: cap(lpLab(['Formula', 'Formula', 'Формула'])) + `<div class="text-xl sm:text-4xl font-black font-mono bg-white/15 rounded-2xl px-5 py-4">${E(d.f)}</div>` });
+                S.push({ say: [d.ex.map(e => e[0]).join('. ')], h: cap(lpLab(['Misollar', 'Examples', 'Примеры'])) + `<div class="space-y-3 text-left">${d.ex.map(e => `<div><div class="text-base sm:text-2xl font-bold">${E(e[0])}</div><div class="text-xs sm:text-base text-yellow-200">${E(e[1])}</div></div>`).join('')}</div>` });
+                S.push({ h: cap(lpLab(['Mashq', 'Practice', 'Упражнение'])) + `<div class="text-lg sm:text-3xl font-bold">${E(d.q[0])}</div>` });
+                S.push({ say: [d.q[1]], h: cap(lpLab(['Javob', 'Answer', 'Ответ'])) + `<div class="text-lg sm:text-3xl font-black text-green-300"><i class="fa-solid fa-circle-check mr-2"></i>${E(d.q[1])}</div>` });
+            } else {
+                l.data.forEach((p, k) => S.push({ h: cap(`${k + 1}/${l.data.length}`) + `<p class="text-lg sm:text-3xl font-bold leading-snug max-w-2xl">${E(p)}</p>` }));
+                S.push({ h: cap(lpLab(['Takrorlash', 'Review', 'Повторение'])) + `<ul class="space-y-2 text-left text-sm sm:text-xl font-semibold">${l.data.map(p => `<li class="flex gap-3"><i class="fa-solid fa-circle-check mt-1 text-green-300"></i><span>${E(p)}</span></li>`).join('')}</ul>` });
+            }
+            return S;
+        }
+
+        function lpStop() {
+            if (lp.timer) clearInterval(lp.timer);
+            lp.timer = null; lp.playing = false;
+            try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) { }
+        }
+        function lpLocked(i) { return i > 0 && !(lp.course && (isPurchased(lp.course.id) || isProActive(currentUser))); }
+        function lpSpeak(text) {
+            const l = lp.lessons[lp.i];
+            if (!l || !l.lang || !window.speechSynthesis || !text) return;
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = l.lang; u.rate = 0.85;
+            speechSynthesis.speak(u);
+        }
+        function lpSay(text) { try { speechSynthesis.cancel(); } catch (e) { } lpSpeak(text); }
+        function lpSpeakScene() {
+            try { speechSynthesis.cancel(); } catch (e) { }
+            const sc = lp.scenes && lp.scenes[lp.s];
+            if (lp.voice && sc && sc.say) sc.say.forEach(t => lpSpeak(t));
+        }
+        function lpInit(course) {
+            lpStop();
+            if (!document.getElementById('lp-stage')) return;
+            lp.course = course; lp.lessons = buildLessons(course); lp.voice = true;
+            lp.lens = lp.lessons.map((l, i) => lessonScenes(l, i).length);
+            lpOpen(0, false);
+        }
+        function lpOpen(i, play) {
+            lpStop();
+            lp.i = i; lp.s = 0; lp.el = 0;
+            lp.scenes = lpLocked(i) ? null : lessonScenes(lp.lessons[i], i);
+            lpRender(); lpRenderList();
+            if (play && lp.scenes) lpToggle();
+        }
+        function lpBar() {
+            const bar = document.getElementById('lp-bar');
+            if (bar && lp.scenes) bar.style.width = ((lp.s + lp.el / LP_SCENE_MS) / lp.scenes.length * 100) + '%';
+        }
+        function lpRender() {
+            const st = document.getElementById('lp-scene'); if (!st) return;
+            const U = LP_UI[currentLang] || LP_UI.uz;
+            document.getElementById('lp-stage').className = 'relative aspect-video w-full rounded-3xl overflow-hidden shadow-lg text-white select-none bg-gradient-to-br ' + TOPIC_GRAD[lessonTopic(lp.course)];
+            const ctl = document.getElementById('lp-ctl');
+            if (!lp.scenes) {
+                ctl.classList.add('hidden');
+                st.innerHTML = `<i class="fa-solid fa-lock text-4xl mb-3"></i><p class="text-sm sm:text-lg font-semibold max-w-md mb-4">${U.lockT}</p>
+                    <div class="flex flex-wrap gap-2 justify-center"><button onclick="addToCart(${lp.course.id})" class="px-5 py-2 bg-white text-blue-700 font-bold rounded-xl text-sm">${U.add}</button><button onclick="navigateTo('pricing')" class="px-5 py-2 bg-amber-400 text-gray-900 font-bold rounded-xl text-sm"><i class="fa-solid fa-crown"></i> PRO</button></div>`;
+                return;
+            }
+            ctl.classList.remove('hidden');
+            st.innerHTML = lp.scenes[lp.s].h;
+            const L = lp.lessons[lp.i];
+            document.getElementById('lp-voice').classList.toggle('hidden', !L.lang);
+            document.getElementById('lp-voice').style.opacity = lp.voice ? 1 : 0.4;
+            document.getElementById('lp-count').textContent = `${U.scene} ${lp.s + 1}/${lp.scenes.length}`;
+            lpIcon(); lpBar();
+        }
+        function lpIcon() {
+            const ic = document.querySelector('#lp-toggle i');
+            const end = lp.scenes && lp.s >= lp.scenes.length - 1 && lp.el >= LP_SCENE_MS;
+            if (ic) ic.className = 'fa-solid ' + (lp.playing ? 'fa-pause' : (end ? 'fa-rotate-right' : 'fa-play'));
+        }
+        function lpRenderList() {
+            const box = document.getElementById('lp-list'); if (!box) return;
+            const U = LP_UI[currentLang] || LP_UI.uz;
+            box.innerHTML = lp.lessons.map((l, i) => {
+                const locked = lpLocked(i), sec = Math.round(lp.lens[i] * LP_SCENE_MS / 1000);
+                const tm = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+                const act = i === lp.i;
+                return `<button onclick="lpOpen(${i}, true)" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm transition ${act ? 'bg-blue-600 text-white' : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}">
+                    <span class="w-6 text-xs font-bold opacity-70">${i + 1}</span>
+                    <span class="flex-1 min-w-0 truncate font-semibold">${escapeHtml(l.title)}</span>
+                    ${i === 0 && locked === false && !isPurchased(lp.course.id) && !isProActive(currentUser) ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-700">${U.free}</span>` : ''}
+                    <span class="text-xs opacity-70">${tm}</span>
+                    <i class="fa-solid ${locked ? 'fa-lock opacity-60' : 'fa-circle-play'} text-xs"></i></button>`;
+            }).join('');
+        }
+        function lpTick() {
+            if (!document.getElementById('lp-stage') || !lp.scenes) { lpStop(); return; }
+            lp.el += 100;
+            if (lp.el >= LP_SCENE_MS) {
+                if (lp.s >= lp.scenes.length - 1) { lp.el = LP_SCENE_MS; lpStop(); lpIcon(); lpBar(); return; }
+                lp.s++; lp.el = 0; lpRender(); lpSpeakScene(); return;
+            }
+            lpBar();
+        }
+        function lpToggle() {
+            if (!lp.scenes) return;
+            if (lp.playing) { lpStop(); lpIcon(); return; }
+            if (lp.s >= lp.scenes.length - 1 && lp.el >= LP_SCENE_MS) { lp.s = 0; lp.el = 0; lpRender(); }
+            lp.playing = true; lpIcon(); lpSpeakScene();
+            lp.timer = setInterval(lpTick, 100);
+        }
+        function lpStep(d) {
+            if (!lp.scenes) return;
+            lp.s = Math.max(0, Math.min(lp.scenes.length - 1, lp.s + d)); lp.el = 0;
+            lpRender(); if (lp.playing) lpSpeakScene();
+        }
+        function lpVoice() { lp.voice = !lp.voice; if (!lp.voice) { try { speechSynthesis.cancel(); } catch (e) { } } else if (lp.playing) lpSpeakScene(); lpRender(); }
+
+        function renderLessonSection(course) {
+            const U = LP_UI[currentLang] || LP_UI.uz;
+            return `<div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-film text-blue-500"></i> ${U.head}</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                    <div class="lg:col-span-3">
+                        <div id="lp-stage" class="relative aspect-video w-full rounded-3xl overflow-hidden shadow-lg text-white select-none bg-gradient-to-br from-blue-700 to-indigo-900">
+                            <div id="lp-scene" class="absolute inset-0 flex flex-col items-center justify-center text-center px-6 sm:px-12 pb-12"></div>
+                            <div id="lp-ctl" class="absolute bottom-0 inset-x-0 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-2">
+                                <button onclick="lpStep(-1)" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs"><i class="fa-solid fa-backward-step"></i></button>
+                                <button id="lp-toggle" onclick="lpToggle()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/35 text-sm"><i class="fa-solid fa-play"></i></button>
+                                <button onclick="lpStep(1)" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs"><i class="fa-solid fa-forward-step"></i></button>
+                                <div class="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden"><div id="lp-bar" class="h-full bg-white" style="width:0%"></div></div>
+                                <span id="lp-count" class="text-xs tabular-nums"></span>
+                                <button id="lp-voice" onclick="lpVoice()" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs hidden" title="${U.voice}"><i class="fa-solid fa-volume-high"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="lp-list" class="lg:col-span-2 space-y-2 max-h-72 lg:max-h-[22rem] overflow-y-auto pr-1"></div>
+                </div>
+            </div>`;
+        }
+
         function renderDetails(container, courseId) {
             const course = coursesList.find(c => c.id === courseId) || coursesList[0];
             const isInCart = cart.some(item => item.id === course.id);
@@ -1767,9 +1993,10 @@
                             <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                                 <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-bold rounded-lg">${course.category}</span>
                                 <span><i class="fa-solid fa-star text-amber-500"></i> ${course.rating} (${course.reviewsCount} sharhlar)</span>
-                                <span><i class="fa-solid fa-play-circle text-blue-500"></i> ${course.lessonsCount} ta dars</span>
+                                <span><i class="fa-solid fa-play-circle text-blue-500"></i> ${buildLessons(course).length} ta dars</span>
                             </div>
                             ${renderCourseVideo(course)}
+                            ${renderLessonSection(course)}
                             <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                                 <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Kurs Haqida</h3>
                                 <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">${course.description}</p>
@@ -1792,6 +2019,7 @@
                 </div>
             `;
             initCourseVideoPlayer();
+            lpInit(course);
         }
 
         // PROFILE VIEW
@@ -1908,9 +2136,9 @@
             ]
         };
         const TASK_UI = {
-            uz: { title: "Amaliy Topshiriqlar", loginTitle: "Topshiriqlarni ko'rish uchun tizimga kiring", login: "Kirish", emptyTitle: "Hozircha topshiriqlar yo'q", emptyDesc: "Kursni sotib olganingizdan keyin shu kursga oid topshiriqlar shu yerda paydo bo'ladi.", toCatalog: "Kurslarni ko'rish", bought: "Sotib olingan", due: "Muddati", left: "kun qoldi", todayDue: "bugun tugaydi", overdue: "Muddati o'tgan", pending: "Kutilmoqda", done: "Bajarildi", markDone: "Bajarildi deb belgilash", undo: "Bekor qilish", task: "Topshiriq", progress: "bajarildi" },
-            en: { title: "Practical Assignments", loginTitle: "Log in to see your assignments", login: "Log in", emptyTitle: "No assignments yet", emptyDesc: "Once you purchase a course, its assignments will appear here.", toCatalog: "Browse courses", bought: "Purchased", due: "Due", left: "days left", todayDue: "due today", overdue: "Overdue", pending: "Pending", done: "Done", markDone: "Mark as done", undo: "Undo", task: "Assignment", progress: "done" },
-            ru: { title: "Практические задания", loginTitle: "Войдите, чтобы увидеть задания", login: "Войти", emptyTitle: "Пока заданий нет", emptyDesc: "После покупки курса задания по нему появятся здесь.", toCatalog: "Смотреть курсы", bought: "Куплено", due: "Срок", left: "дн. осталось", todayDue: "срок сегодня", overdue: "Просрочено", pending: "Ожидается", done: "Выполнено", markDone: "Отметить выполненным", undo: "Отменить", task: "Задание", progress: "выполнено" }
+            uz: { watch: "Darslarni ko'rish", title: "Amaliy Topshiriqlar", loginTitle: "Topshiriqlarni ko'rish uchun tizimga kiring", login: "Kirish", emptyTitle: "Hozircha topshiriqlar yo'q", emptyDesc: "Kursni sotib olganingizdan keyin shu kursga oid topshiriqlar shu yerda paydo bo'ladi.", toCatalog: "Kurslarni ko'rish", bought: "Sotib olingan", due: "Muddati", left: "kun qoldi", todayDue: "bugun tugaydi", overdue: "Muddati o'tgan", pending: "Kutilmoqda", done: "Bajarildi", markDone: "Bajarildi deb belgilash", undo: "Bekor qilish", task: "Topshiriq", progress: "bajarildi" },
+            en: { watch: "Watch lessons", title: "Practical Assignments", loginTitle: "Log in to see your assignments", login: "Log in", emptyTitle: "No assignments yet", emptyDesc: "Once you purchase a course, its assignments will appear here.", toCatalog: "Browse courses", bought: "Purchased", due: "Due", left: "days left", todayDue: "due today", overdue: "Overdue", pending: "Pending", done: "Done", markDone: "Mark as done", undo: "Undo", task: "Assignment", progress: "done" },
+            ru: { watch: "Смотреть уроки", title: "Практические задания", loginTitle: "Войдите, чтобы увидеть задания", login: "Войти", emptyTitle: "Пока заданий нет", emptyDesc: "После покупки курса задания по нему появятся здесь.", toCatalog: "Смотреть курсы", bought: "Куплено", due: "Срок", left: "дн. осталось", todayDue: "срок сегодня", overdue: "Просрочено", pending: "Ожидается", done: "Выполнено", markDone: "Отметить выполненным", undo: "Отменить", task: "Задание", progress: "выполнено" }
         };
         function tasksForCourse(course) {
             const bank = TASK_BANK[course.category] || TASK_BANK["Dasturlash"];
@@ -1976,6 +2204,7 @@
                             <div>
                                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(course.title)}</h3>
                                 <p class="text-xs text-gray-500">${U.bought}: ${fmtDate(p.at)}</p>
+                                <button onclick="navigateTo('details', ${p.id})" class="text-xs font-semibold text-blue-600 hover:underline mt-1"><i class="fa-solid fa-circle-play"></i> ${U.watch}</button>
                             </div>
                             <span class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700">${doneCount}/${tasks.length} ${U.progress}</span>
                         </div>
