@@ -991,6 +991,7 @@
                     snap.forEach(d => list.push(d.data()));
                     cloudState = 'on';
                     localStorage.setItem(USERS_KEY, JSON.stringify(list)); // kesh
+                    mergeCloudPurchases(list);
 
                 }, err => {
                     console.error('Firestore xatosi:', err);
@@ -1845,24 +1846,147 @@
             `;
         }
 
+        // ===== SOTIB OLINGAN KURSLAR VA ULARGA OID TOPSHIRIQLAR =====
+        function purchasesKey() { return currentUser && currentUser.email ? 'eduflow_purchases_' + currentUser.email.trim().toLowerCase() : null; }
+        function getPurchases() { // [{id, at}]
+            const k = purchasesKey(); if (!k) return [];
+            try { const a = JSON.parse(localStorage.getItem(k)); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+        }
+        function savePurchases(list) {
+            const k = purchasesKey(); if (!k) return;
+            localStorage.setItem(k, JSON.stringify(list));
+            if (!cloudDb) return;
+            const id = currentUser.cloudId || encodeURIComponent(currentUser.email.trim().toLowerCase());
+            // update() hujjat mavjud bo'lmasa xato beradi, shuning uchun bo'sh "ruh" foydalanuvchi yaratilmaydi
+            cloudDb.collection('users').doc(id).update({ purchases: list }).catch(err => console.warn('Sotib olinganlarni bulutga yozib bo\'lmadi:', err.message));
+        }
+        function mergeCloudPurchases(cloudUsers) {
+            if (!currentUser || !currentUser.email) return;
+            const me = cloudUsers.find(u => (u.email || '').trim().toLowerCase() === currentUser.email.trim().toLowerCase());
+            if (!me || !Array.isArray(me.purchases)) return;
+            const local = getPurchases(), have = new Set(local.map(p => p.id));
+            let changed = false;
+            me.purchases.forEach(p => { if (p && !have.has(p.id)) { local.push(p); changed = true; } });
+            if (changed) localStorage.setItem(purchasesKey(), JSON.stringify(local));
+        }
+        function isPurchased(id) { return getPurchases().some(p => p.id === id); }
+        function doneKey() { return 'eduflow_tasks_done_' + currentUser.email.trim().toLowerCase(); }
+        function getDoneMap() { try { return JSON.parse(localStorage.getItem(doneKey())) || {}; } catch (e) { return {}; } }
+        function toggleTaskDone(courseId, idx) {
+            const m = getDoneMap(), k = courseId + '-' + idx;
+            if (m[k]) delete m[k]; else m[k] = new Date().toISOString();
+            localStorage.setItem(doneKey(), JSON.stringify(m));
+            navigateTo('tasks');
+        }
+
+        // Har bir kategoriya uchun topshiriqlar: [sarlavha, tavsif] uz / en / ru
+        const TASK_BANK = {
+            "Dasturlash": [
+                [["Birinchi dastur", "Kursdagi 1-3 darslar asosida kichik dastur yozing va natijani ko'rsating."], ["First program", "Write a small program based on lessons 1-3 and show the result."], ["Первая программа", "Напишите небольшую программу по урокам 1–3 и покажите результат."]],
+                [["Mini-loyiha", "O'rganganlaringizdan foydalanib, mini-loyiha (masalan, to-do ro'yxat) yarating."], ["Mini project", "Build a mini project (e.g. a to-do list) using what you learned."], ["Мини-проект", "Создайте мини-проект (например, список дел), используя изученное."]],
+                [["Yakuniy loyiha", "Kurs mavzulari bo'yicha to'liq loyiha tayyorlab, kodini GitHub ga joylang."], ["Final project", "Prepare a complete project on course topics and publish the code on GitHub."], ["Итоговый проект", "Подготовьте полный проект по темам курса и выложите код на GitHub."]]
+            ],
+            "Dizayn": [
+                [["Rang va shrift tanlash", "O'zingiz tanlagan mavzu uchun rang palitrasi va shriftlar to'plamini tuzing."], ["Colors and fonts", "Create a color palette and font set for a topic of your choice."], ["Цвета и шрифты", "Составьте палитру и набор шрифтов для выбранной темы."]],
+                [["Bitta ekran dizayni", "Mobil ilova uchun bitta ekran maketini chizing."], ["Single screen design", "Design one screen mockup for a mobile app."], ["Дизайн одного экрана", "Нарисуйте макет одного экрана мобильного приложения."]],
+                [["Portfolio ishi", "Kurs mavzulari bo'yicha to'liq ish tayyorlab, portfolioga qo'shing."], ["Portfolio piece", "Prepare a complete piece on course topics and add it to your portfolio."], ["Работа для портфолио", "Подготовьте законченную работу по темам курса и добавьте в портфолио."]]
+            ],
+            "Biznes": [
+                [["G'oya tahlili", "Biznes g'oyangizni bir sahifada yozing: muammo, yechim, mijoz."], ["Idea analysis", "Describe your business idea on one page: problem, solution, customer."], ["Анализ идеи", "Опишите бизнес-идею на одной странице: проблема, решение, клиент."]],
+                [["Moliyaviy reja", "Dastlabki xarajat va daromadlarni hisoblab, oddiy jadval tuzing."], ["Financial plan", "Estimate initial costs and revenue and make a simple table."], ["Финансовый план", "Рассчитайте первоначальные расходы и доходы и составьте простую таблицу."]],
+                [["Taqdimot", "Biznes loyihangiz uchun 5 slaydli taqdimot tayyorlang."], ["Pitch deck", "Prepare a 5-slide presentation for your business project."], ["Презентация", "Подготовьте презентацию проекта из 5 слайдов."]]
+            ],
+            "Chet tillari": [
+                [["Lug'at topshirig'i", "Kursdagi yangi 30 ta so'zni gaplarda qo'llab yozing."], ["Vocabulary task", "Use 30 new words from the course in sentences."], ["Задание по лексике", "Составьте предложения с 30 новыми словами из курса."]],
+                [["Yozma ish", "Berilgan mavzuda 150 so'zli insho yozing."], ["Writing task", "Write a 150-word essay on the given topic."], ["Письменная работа", "Напишите эссе на 150 слов по заданной теме."]],
+                [["Gapirish mashqi", "O'zingiz haqingizda 2 daqiqalik audio yozib oling."], ["Speaking practice", "Record a 2-minute audio about yourself."], ["Разговорная практика", "Запишите двухминутное аудио о себе."]]
+            ],
+            "SMM & Marketing": [
+                [["Auditoriya tahlili", "Tanlangan mahsulot uchun maqsadli auditoriya portretini tuzing."], ["Audience analysis", "Build a target audience profile for a chosen product."], ["Анализ аудитории", "Составьте портрет целевой аудитории выбранного продукта."]],
+                [["Kontent reja", "Bir hafta uchun ijtimoiy tarmoq kontent rejasini yozing."], ["Content plan", "Write a one-week social media content plan."], ["Контент-план", "Составьте контент-план для соцсетей на неделю."]],
+                [["Reklama kampaniyasi", "Kichik reklama kampaniyasi g'oyasi va byudjetini tayyorlang."], ["Ad campaign", "Prepare an idea and budget for a small ad campaign."], ["Рекламная кампания", "Подготовьте идею и бюджет небольшой рекламной кампании."]]
+            ]
+        };
+        const TASK_UI = {
+            uz: { title: "Amaliy Topshiriqlar", loginTitle: "Topshiriqlarni ko'rish uchun tizimga kiring", login: "Kirish", emptyTitle: "Hozircha topshiriqlar yo'q", emptyDesc: "Kursni sotib olganingizdan keyin shu kursga oid topshiriqlar shu yerda paydo bo'ladi.", toCatalog: "Kurslarni ko'rish", bought: "Sotib olingan", due: "Muddati", left: "kun qoldi", todayDue: "bugun tugaydi", overdue: "Muddati o'tgan", pending: "Kutilmoqda", done: "Bajarildi", markDone: "Bajarildi deb belgilash", undo: "Bekor qilish", task: "Topshiriq", progress: "bajarildi" },
+            en: { title: "Practical Assignments", loginTitle: "Log in to see your assignments", login: "Log in", emptyTitle: "No assignments yet", emptyDesc: "Once you purchase a course, its assignments will appear here.", toCatalog: "Browse courses", bought: "Purchased", due: "Due", left: "days left", todayDue: "due today", overdue: "Overdue", pending: "Pending", done: "Done", markDone: "Mark as done", undo: "Undo", task: "Assignment", progress: "done" },
+            ru: { title: "Практические задания", loginTitle: "Войдите, чтобы увидеть задания", login: "Войти", emptyTitle: "Пока заданий нет", emptyDesc: "После покупки курса задания по нему появятся здесь.", toCatalog: "Смотреть курсы", bought: "Куплено", due: "Срок", left: "дн. осталось", todayDue: "срок сегодня", overdue: "Просрочено", pending: "Ожидается", done: "Выполнено", markDone: "Отметить выполненным", undo: "Отменить", task: "Задание", progress: "выполнено" }
+        };
+        function tasksForCourse(course) {
+            const bank = TASK_BANK[course.category] || TASK_BANK["Dasturlash"];
+            const li = { uz: 0, en: 1, ru: 2 }[currentLang] ?? 0;
+            return bank.map(t => ({ title: t[li][0], desc: t[li][1] }));
+        }
+
         // TASKS VIEW
         function renderTasks(container) {
+            const U = TASK_UI[currentLang] || TASK_UI.uz;
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div class="text-center py-20">
+                        <i class="fa-solid fa-user-lock text-5xl text-blue-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">${U.loginTitle}</h2>
+                        <button onclick="openAuthModal()" class="mt-4 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl">${U.login}</button>
+                    </div>`;
+                return;
+            }
+            const purchases = getPurchases().filter(p => coursesList.some(c => c.id === p.id));
+            if (purchases.length === 0) {
+                container.innerHTML = `
+                    <div class="py-12 max-w-4xl mx-auto space-y-6">
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-blue-600"></i> ${U.title}</h1>
+                        <div class="bg-white dark:bg-gray-800 p-10 rounded-2xl border border-gray-200 dark:border-gray-700 text-center">
+                            <i class="fa-solid fa-clipboard-list text-5xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">${U.emptyTitle}</h3>
+                            <p class="text-sm text-gray-500 mb-5">${U.emptyDesc}</p>
+                            <button onclick="navigateTo('catalog')" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">${U.toCatalog}</button>
+                        </div>
+                    </div>`;
+                return;
+            }
+            const doneMap = getDoneMap(), now = new Date();
+            const blocks = purchases.slice().reverse().map(p => {
+                const course = coursesList.find(c => c.id === p.id);
+                const tasks = tasksForCourse(course);
+                const doneCount = tasks.filter((_, i) => doneMap[p.id + '-' + i]).length;
+                const rows = tasks.map((t, i) => {
+                    const isDone = !!doneMap[p.id + '-' + i];
+                    const due = new Date(new Date(p.at).getTime() + (i + 1) * 7 * 86400000);
+                    const days = Math.ceil((due - now) / 86400000);
+                    let badge, dueText;
+                    if (isDone) { badge = `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">${U.done}</span>`; dueText = ''; }
+                    else if (days < 0) { badge = `<span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">${U.overdue}</span>`; dueText = `${U.due}: ${fmtDate(due)}`; }
+                    else { badge = `<span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">${U.pending}</span>`; dueText = `${U.due}: ${fmtDate(due)} · ` + (days === 0 ? U.todayDue : `${days} ${U.left}`); }
+                    return `
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-gray-900 dark:text-white ${isDone ? 'line-through opacity-60' : ''}">${U.task} #${i + 1}: ${escapeHtml(t.title)}</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">${escapeHtml(t.desc)}</p>
+                                ${dueText ? `<p class="text-xs text-gray-500 mt-1">${dueText}</p>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                ${badge}
+                                <button onclick="toggleTaskDone(${p.id}, ${i})" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition">${isDone ? U.undo : U.markDone}</button>
+                            </div>
+                        </div>`;
+                }).join('');
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(course.title)}</h3>
+                                <p class="text-xs text-gray-500">${U.bought}: ${fmtDate(p.at)}</p>
+                            </div>
+                            <span class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700">${doneCount}/${tasks.length} ${U.progress}</span>
+                        </div>
+                        <div class="space-y-3">${rows}</div>
+                    </div>`;
+            }).join('');
             container.innerHTML = `
                 <div class="py-12 max-w-4xl mx-auto space-y-6">
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-blue-600"></i> Amaliy Topshiriqlar
-                    </h1>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex items-center justify-between">
-                            <div>
-                                <h4 class="font-bold text-gray-900 dark:text-white">Python OOP - Amaliy topshiriq #1</h4>
-                                <p class="text-xs text-gray-500">Muddati: 3 kun qoldi</p>
-                            </div>
-                            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">Kutilmoqda</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-blue-600"></i> ${U.title}</h1>
+                    ${blocks}
+                </div>`;
         }
 
         // CONTACT VIEW
@@ -1967,12 +2091,17 @@
 
         function processCheckout() {
             if (cart.length === 0) return;
-            alert("To'lov muvaffaqiyatli amalga oshirildi! Kurslar profilingizga biriktirildi.");
+            if (!currentUser) { closeCartModal(); openAuthModal(); return; }
+            // Sotib olingan kurslarni foydalanuvchiga biriktirish
+            const purchases = getPurchases(), have = new Set(purchases.map(p => p.id)), at = new Date().toISOString();
+            cart.forEach(c => { if (!have.has(c.id)) purchases.push({ id: c.id, at }); });
+            savePurchases(purchases);
+            alert("To'lov muvaffaqiyatli amalga oshirildi! Kurslar profilingizga biriktirildi. Kursga oid topshiriqlar \"Topshiriqlar\" bo'limida paydo bo'ldi.");
             cart = [];
             localStorage.setItem('eduflow_cart', JSON.stringify(cart));
             updateCartAndBookmarkCounts();
             closeCartModal();
-            navigateTo('profile');
+            navigateTo('tasks');
         }
 
         // ===== PRO TARIFLAR: 1 oylik va 1 yillik =====
