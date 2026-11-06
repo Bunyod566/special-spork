@@ -1723,9 +1723,9 @@
             const box = 'aspect-video w-full rounded-3xl overflow-hidden shadow-lg bg-black';
             let body, badge = '';
             if (v && v.type === 'youtube') {
-                body = `<div class="${box}"><iframe src="${escapeHtml(v.src)}" class="w-full h-full" loading="lazy" allowfullscreen allow="encrypted-media; picture-in-picture; fullscreen" title="Kurs videosi"></iframe></div>`;
+                body = `<div id="cv-box" class="${box}"><iframe src="${escapeHtml(v.src)}" class="w-full h-full" loading="lazy" allowfullscreen allow="encrypted-media; picture-in-picture; fullscreen" title="Kurs videosi"></iframe></div>`;
             } else if (v && v.type === 'file') {
-                body = `<div class="${box}"><video src="${escapeHtml(v.src)}" class="w-full h-full" controls preload="metadata" playsinline></video></div>`;
+                body = `<div id="cv-box" class="${box}"><video src="${escapeHtml(v.src)}" class="w-full h-full" controls preload="metadata" playsinline></video></div>`;
             } else if (v) {
                 body = `<div class="aspect-video w-full rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center gap-4 text-white text-center p-6">
                             <i class="fa-solid fa-circle-play text-6xl"></i>
@@ -1747,7 +1747,7 @@
                         </div>${hint}`;
             }
             return `<div>
-                        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2">Kurs videosi ${badge}</h3>
+                        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2">Kurs videosi ${badge}${(v && v.type !== 'link') ? `<button onclick="toggleFS('cv-box')" class="ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition"><i class="fa-solid fa-expand"></i> ${lpLab(["To'liq ekran", 'Fullscreen', 'Полный экран'])}</button>` : ''}</h3>
                         ${body}
                     </div>`;
         }
@@ -1798,6 +1798,22 @@
             en: { head: "Video lessons", free: "Free", lockT: "This lesson is available to course buyers and PRO users", add: "Add to cart", voice: "Voice", scene: "Scene" },
             ru: { head: "Видеоуроки", free: "Бесплатно", lockT: "Этот урок доступен тем, кто купил курс, и PRO-пользователям", add: "В корзину", voice: "Голос", scene: "Сцена" }
         };
+        // ===== TO'LIQ EKRAN (barcha videolar uchun) =====
+        function toggleFS(id) {
+            const el = document.getElementById(id); if (!el) return;
+            const cur = document.fullscreenElement || document.webkitFullscreenElement;
+            if (cur) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+            const req = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (req) req.call(el);
+        }
+        function fsIconSync() {
+            const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            const i = document.querySelector('#lp-fs i');
+            if (i) i.className = 'fa-solid ' + (on ? 'fa-compress' : 'fa-expand');
+        }
+        document.addEventListener('fullscreenchange', fsIconSync);
+        document.addEventListener('webkitfullscreenchange', fsIconSync);
+
         const LP_SCENE_MS = 5000;
         let lp = { course: null, lessons: [], lens: [], i: 0, s: 0, el: 0, scenes: null, playing: false, timer: null, voice: true };
         const lpLab = a => a[{ uz: 0, en: 1, ru: 2 }[currentLang] ?? 0];
@@ -1957,6 +1973,7 @@
         function renderLessonSection(course) {
             const U = LP_UI[currentLang] || LP_UI.uz;
             return `<div>
+                <style>#lp-stage:fullscreen,#lp-stage:-webkit-full-screen{border-radius:0;width:100%;height:100%;aspect-ratio:auto}#lp-stage:fullscreen #lp-scene,#lp-stage:-webkit-full-screen #lp-scene{zoom:1.7}</style>
                 <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-film text-blue-500"></i> ${U.head}</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
                     <div class="lg:col-span-3">
@@ -1968,6 +1985,7 @@
                                 <button onclick="lpStep(1)" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs"><i class="fa-solid fa-forward-step"></i></button>
                                 <div class="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden"><div id="lp-bar" class="h-full bg-white" style="width:0%"></div></div>
                                 <span id="lp-count" class="text-xs tabular-nums"></span>
+                                <button id="lp-fs" onclick="toggleFS('lp-stage')" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs" title="${lpLab(["To'liq ekran", 'Fullscreen', 'Полный экран'])}"><i class="fa-solid fa-expand"></i></button>
                                 <button id="lp-voice" onclick="lpVoice()" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs hidden" title="${U.voice}"><i class="fa-solid fa-volume-high"></i></button>
                             </div>
                         </div>

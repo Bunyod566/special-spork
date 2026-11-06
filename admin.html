@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduFlow Admin</title>
+    <title>EduFlow - Onlayn Ta'lim Platformasi</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -250,7 +250,7 @@
     <div id="account-missing-banner" class="hidden sticky top-0 z-50 bg-red-600 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-center gap-3 text-sm font-bold">
             <i class="fa-solid fa-triangle-exclamation text-lg"></i>
-            <span>Bunday akkaunt yo'q!</span>
+            <span>Bunday akkount yo'q!</span>
             <button onclick="logoutUser()"
                 class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs transition">Chiqish</button>
         </div>
@@ -282,12 +282,6 @@
                     id="nav-tasks">Topshiriqlar</button>
                 <button onclick="navigateTo('contact')" class="hover:text-blue-600 dark:hover:text-blue-400 transition"
                     id="nav-contact">Aloqa</button>
-                <button onclick="goAdminProfile()" id="nav-profile-manage"
-                    class="text-gray-600 dark:text-gray-300 hover:text-amber-500 transition flex items-center gap-1.5 whitespace-nowrap"><i
-                        class="fa-solid fa-user-gear text-xs"></i> Profilni boshqarish</button>
-                <a href="index.html" id="nav-main-site"
-                    class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition flex items-center gap-1.5 whitespace-nowrap"><i
-                        class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Asosiy sayt</a>
             </nav>
 
             <!-- Actions Right -->
@@ -441,8 +435,23 @@
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">EMAIL /
                         LOGIN</label>
-                    <input type="email" id="auth-email" required placeholder="ali@example.com"
-                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    <div class="flex gap-2">
+                        <input type="email" id="auth-email" required placeholder="ali@example.com"
+                            oninput="onAuthEmailInput()"
+                            class="flex-1 min-w-0 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <button type="button" id="auth-send-code-btn" onclick="sendAuthCode()"
+                            class="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition whitespace-nowrap">Kod
+                            yuborish</button>
+                    </div>
+                </div>
+                <div id="auth-code-wrap" class="hidden">
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1"
+                        id="lbl-auth-code">POCHTANGIZGA KELGAN KOD</label>
+                    <input type="text" id="auth-code" inputmode="numeric" autocomplete="one-time-code"
+                        pattern="[0-9]{6}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)"
+                        placeholder="••••••"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center font-mono text-lg tracking-[0.4em]">
+                    <p id="auth-code-hint" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1"
@@ -506,48 +515,6 @@
                 <button type="submit" id="edit-save-btn"
                     class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition text-sm shadow-md">
                     O'zgarishlarni Saqlash
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- ADMIN LOGIN MODAL -->
-    <div id="admin-modal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
-        <div
-            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-amber-500/30">
-            <button onclick="closeAdminModal()"
-                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <div class="flex items-center gap-3 mb-4">
-                <div
-                    class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-shield-halved"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="admin-modal-title">Admin Boshqaruvi
-                    </h3>
-                    <p class="text-xs text-gray-500" id="admin-modal-subtitle">Tizimga kirish uchun login va parolni
-                        kiriting</p>
-                </div>
-            </div>
-
-            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">ADMIN LOGIN</label>
-                    <input type="text" id="admin-login-input" required placeholder="din_usik3"
-                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1"
-                        id="lbl-admin-pass">PAROL</label>
-                    <input type="password" id="admin-pass-input" required placeholder="••••••••"
-                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
-                </div>
-                <button type="submit" id="admin-login-btn"
-                    class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold rounded-lg transition text-sm shadow-md">
-                    Admin Panelga Kirish
                 </button>
             </form>
         </div>
@@ -640,48 +607,6 @@
                 class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 hover:opacity-90 text-gray-950 font-black rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
                 <i class="fa-solid fa-bolt"></i> <span id="premium-confirm-text">Obunani tasdiqlash (30,000 UZS)</span>
             </button>
-        </div>
-    </div>
-
-    <!-- ADMIN CHANGE PASSWORD MODAL -->
-    <div id="admin-pass-modal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
-        <div
-            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-amber-500/30">
-            <button onclick="closeAdminPassModal()"
-                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <h3 class="text-xl font-bold mb-1 text-gray-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-key text-amber-500"></i> Parolni Almashtirish
-            </h3>
-            <p class="text-xs text-amber-600 dark:text-amber-400 font-bold mb-4 flex items-center gap-1">
-                <i class="fa-solid fa-circle-exclamation"></i> ! yangi parol esdan chiqmasin
-            </p>
-
-            <form onsubmit="handleChangeAdminPassword(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">HOZIRGI
-                        PAROL</label>
-                    <input type="password" id="curr-admin-pass" required
-                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">YANGI PAROL</label>
-                    <input type="password" id="new-admin-pass" required
-                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">YANGI PAROLNI
-                        TASDIQLASH</label>
-                    <input type="password" id="confirm-admin-pass" required
-                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
-                </div>
-                <button type="submit"
-                    class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold rounded-lg transition text-sm shadow-md">
-                    Parolni Saqlash
-                </button>
-            </form>
         </div>
     </div>
 
@@ -883,12 +808,6 @@
             }
         };
 
-        // ADMIN CREDENTIALS STATE
-        let adminCredentials = JSON.parse(localStorage.getItem('eduflow_admin_credentials')) || {
-            login: 'din_usik3',
-            pass: 'iloveRoblox'
-        };
-
         // ===== KURS RASMLARI: har bir mavzu uchun alohida illyustratsiya (SVG) =====
         const _r = (x, y, w, h, f, rx = 6, o = 1) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}" opacity="${o}"/>`;
         const _c = (x, y, r, f, o = 1) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" opacity="${o}"/>`;
@@ -1019,7 +938,8 @@
         }
 
         // APP STATE
-        let currentUser = JSON.parse(localStorage.getItem('eduflow_admin_session')) || null;
+        let currentUser = JSON.parse(localStorage.getItem('eduflow_current_user')) || null;
+        if (currentUser && currentUser.isAdmin) { currentUser = null; localStorage.removeItem('eduflow_current_user'); }
         let bookmarks = JSON.parse(localStorage.getItem('eduflow_bookmarks')) || [];
         let cart = JSON.parse(localStorage.getItem('eduflow_cart')) || [];
         let isDarkMode = localStorage.getItem('eduflow_theme') === 'dark';
@@ -1041,7 +961,7 @@
         function saveUsers(list) {
             localStorage.setItem(USERS_KEY, JSON.stringify(list));
             if (userChannel) userChannel.postMessage('users-updated');
-            refreshAdminUserStats();
+
         }
 
         // ===== FIREBASE (Firestore) SOZLAMALARI =====
@@ -1071,11 +991,12 @@
                     snap.forEach(d => list.push(d.data()));
                     cloudState = 'on';
                     localStorage.setItem(USERS_KEY, JSON.stringify(list)); // kesh
-                    refreshAdminUserStats();
+                    mergeCloudPurchases(list);
+
                 }, err => {
                     console.error('Firestore xatosi:', err);
                     cloudState = 'error';
-                    refreshAdminUserStats();
+
                 });
             } catch (e) {
                 console.error('Firebase init xatosi:', e);
@@ -1089,7 +1010,7 @@
             if (!user.cloudId) {
                 user.cloudId = encodeURIComponent(user.email.trim().toLowerCase());
                 if (currentUser && currentUser.email === user.email) {
-                    localStorage.setItem('eduflow_admin_session', JSON.stringify(user));
+                    localStorage.setItem('eduflow_current_user', JSON.stringify(user));
                 }
             }
             const ref = cloudDb.collection('users').doc(user.cloudId);
@@ -1104,7 +1025,7 @@
                     data.registeredAt = registeredAt || new Date().toISOString();
                 }
                 return ref.set(data, { merge: true });
-            }).catch(err => { console.error('Firestore yozish xatosi:', err); cloudState = 'error'; refreshAdminUserStats(); });
+            }).catch(err => { console.error('Firestore yozish xatosi:', err); cloudState = 'error'; });
         }
 
         function registerUserInRegistry(user, oldEmail) {
@@ -1158,164 +1079,6 @@
             }
             banner.classList.toggle('hidden', !missing);
         }
-
-        // Admin: foydalanuvchini o'chirish (qayta tiklab bo'lmaydi)
-        function deleteAdminUser(email) {
-            if (!currentUser || !currentUser.isAdmin) return;
-            if (!confirm(`"${email}" foydalanuvchini o'chirmoqchimisiz?`)) return;
-            const list = getUsers();
-            const key = email.trim().toLowerCase();
-            const entry = list.find(u => (u.email || '').toLowerCase() === key);
-            if (!entry) return;
-            entry.deleted = true;
-            saveUsers(list);
-            if (cloudDb) {
-                cloudDb.collection('users').where('email', '==', entry.email).get()
-                    .then(snap => snap.forEach(d => d.ref.update({ deleted: true })))
-                    .catch(err => { console.error('O\'chirishda xato:', err); cloudState = 'error'; refreshAdminUserStats(); });
-            }
-        }
-
-        // Admin: tanlangan foydalanuvchi akkauntiga kirish (asosiy saytda yangi oynada ochiladi)
-        function loginAsUser(email) {
-            if (!currentUser || !currentUser.isAdmin) return;
-            const key = String(email).trim().toLowerCase();
-            const u = getUsers().find(x => (x.email || '').toLowerCase() === key && !x.deleted);
-            if (!u) { alert("Foydalanuvchi topilmadi."); return; }
-            if (!confirm(`"${u.name}" (${u.email}) akkauntiga kirmoqchimisiz?`)) return;
-            const session = {
-                name: u.name,
-                email: u.email,
-                avatar: `https://picsum.photos/seed/${u.name}/100/100`,
-                isPro: isProActive(u),
-                isAdmin: false,
-                ...(u.proUntil ? { proPlan: u.proPlan || 'monthly', proUntil: u.proUntil } : {})
-            };
-            // Asosiy sayt (index.html) shu kalit orqali foydalanuvchini taniydi
-            localStorage.setItem('eduflow_current_user', JSON.stringify(session));
-            const w = window.open('index.html', '_blank');
-            if (!w) window.location.href = 'index.html'; // brauzer yangi oynani bloklasa
-        }
-
-        // Admin: ro'yxatni faylga saqlash (boshqa brauzerga o'tkazish uchun)
-        function exportUsers() {
-            const data = JSON.stringify(getUsers(), null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'eduflow-users-' + new Date().toISOString().slice(0, 10) + '.json';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }
-
-        // Admin: fayldan ro'yxatni yuklab, mavjud ro'yxat bilan birlashtirish
-        function importUsers(inputEl) {
-            const file = inputEl.files && inputEl.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-                try {
-                    const incoming = JSON.parse(reader.result);
-                    if (!Array.isArray(incoming)) throw new Error('format');
-                    const list = getUsers();
-                    let added = 0, updated = 0;
-                    incoming.forEach(raw => {
-                        if (!raw || typeof raw.email !== 'string' || !raw.email.trim()) return;
-                        const email = raw.email.trim().slice(0, 200);
-                        const key = email.toLowerCase();
-                        const name = String(raw.name || email).slice(0, 100);
-                        const regAt = isNaN(new Date(raw.registeredAt)) ? new Date().toISOString() : new Date(raw.registeredAt).toISOString();
-                        const existing = list.find(u => (u.email || '').toLowerCase() === key);
-                        if (!existing) {
-                            const entry = { name, email, registeredAt: regAt, isPro: !!raw.isPro };
-                            if (raw.proUntil) { entry.proUntil = raw.proUntil; entry.proPlan = raw.proPlan || 'monthly'; }
-                            if (raw.deleted) entry.deleted = true;
-                            list.push(entry);
-                            added++;
-                        } else {
-                            let changed = false;
-                            if (new Date(regAt) < new Date(existing.registeredAt)) { existing.registeredAt = regAt; changed = true; }
-                            if (raw.isPro && !existing.isPro) { existing.isPro = true; changed = true; }
-                            if (raw.proUntil && (!existing.proUntil || new Date(raw.proUntil) > new Date(existing.proUntil))) { existing.proUntil = raw.proUntil; existing.proPlan = raw.proPlan || 'monthly'; changed = true; }
-                            if (raw.deleted && !existing.deleted) { existing.deleted = true; changed = true; }
-                            if (changed) updated++;
-                        }
-                    });
-                    saveUsers(list);
-                    if (cloudDb) {
-                        list.filter(u => !u.deleted).forEach(u => cloudUpsertUser({ name: u.name, email: u.email, isPro: u.isPro, proPlan: u.proPlan, proUntil: u.proUntil }, u.registeredAt));
-                    }
-                    alert(`Import tugadi: ${added} ta yangi, ${updated} ta yangilandi.`);
-                } catch (e) {
-                    alert("Fayl noto'g'ri. Faqat \"Eksport\" tugmasi bilan saqlangan .json faylni yuklang.");
-                }
-                inputEl.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        function refreshAdminUserStats() {
-            checkAccountStatus();
-            const hl = document.getElementById('hero-live-count');
-            if (hl) hl.textContent = getUsers().filter(u => !u.deleted).length;
-            const totalEl = document.getElementById('admin-users-total');
-            if (!totalEl) return; // admin panel ochiq emas
-            const users = getUsers().filter(u => !u.deleted);
-            const todayStr = new Date().toDateString();
-            const todayCount = users.filter(u => new Date(u.registeredAt).toDateString() === todayStr).length;
-            const proCount = users.filter(isProActive).length;
-
-            if (totalEl.textContent !== String(users.length)) {
-                totalEl.textContent = users.length;
-                totalEl.classList.add('scale-125', 'text-green-500');
-                setTimeout(() => totalEl.classList.remove('scale-125', 'text-green-500'), 600);
-            }
-            const todayEl = document.getElementById('admin-users-today');
-            const proEl = document.getElementById('admin-users-pro');
-            const timeEl = document.getElementById('admin-users-updated');
-            if (todayEl) todayEl.textContent = todayCount;
-            if (proEl) proEl.textContent = proCount;
-            if (timeEl) timeEl.textContent = new Date().toLocaleTimeString();
-            const cloudEl = document.getElementById('admin-cloud-status');
-            if (cloudEl) {
-                const map = {
-                    off: ['Lokal rejim (Firebase ulanmagan)', 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'],
-                    connecting: ['Ulanmoqda...', 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'],
-                    on: ['Firebase ulangan', 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'],
-                    error: ['Firebase xatosi (Console ga qarang)', 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300']
-                };
-                cloudEl.textContent = map[cloudState][0];
-                cloudEl.className = 'px-3 py-1 rounded-full ' + map[cloudState][1];
-            }
-
-            const body = document.getElementById('admin-users-body');
-            if (body) {
-                const sorted = [...users].sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
-                body.innerHTML = sorted.length ? sorted.map((u, idx) => `
-                    <tr class="border-b border-gray-100 dark:border-gray-700/60">
-                        <td class="py-2.5 px-3 text-gray-500">${sorted.length - idx}</td>
-                        <td class="py-2.5 px-3 font-semibold text-gray-900 dark:text-white">${escapeHtml(u.name)} ${isProActive(u) ? '<span class="ml-1 bg-amber-500 text-gray-950 text-[10px] font-bold px-1.5 py-0.5 rounded"><i class="fa-solid fa-crown"></i> PRO</span>' + (u.proUntil ? ` <span class="text-[10px] font-normal text-gray-400">${u.proPlan === 'yearly' ? '1 yillik' : '1 oylik'} &middot; ${fmtDate(u.proUntil)} gacha</span>` : '') : ''}</td>
-                        <td class="py-2.5 px-3 text-gray-600 dark:text-gray-300">${escapeHtml(u.email)}</td>
-                        <td class="py-2.5 px-3 text-gray-500 whitespace-nowrap">${new Date(u.registeredAt).toLocaleString()}</td>
-                        <td class="py-2.5 px-3 text-right whitespace-nowrap">
-                            <button data-email="${escapeHtml(u.email)}" onclick="loginAsUser(this.dataset.email)" class="px-2.5 py-1.5 mr-1 bg-blue-500/10 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition text-xs font-semibold" title="Akkountga kirish">
-                                <i class="fa-solid fa-right-to-bracket"></i> Akkountga kirish
-                            </button>
-                            <button data-email="${escapeHtml(u.email)}" onclick="deleteAdminUser(this.dataset.email)" class="px-2.5 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition text-xs" title="Foydalanuvchini o'chirish">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>`).join('') : `<tr><td colspan="5" class="py-6 text-center text-gray-400">Hozircha hech kim ro'yxatdan o'tmagan</td></tr>`;
-            }
-        }
-
-        // Real vaqt yangilanish: boshqa tab/oyna, localStorage o'zgarishi va davriy tekshiruv
-        window.addEventListener('storage', e => { if (e.key === USERS_KEY) refreshAdminUserStats(); });
-        if (userChannel) userChannel.onmessage = () => refreshAdminUserStats();
-        setInterval(refreshAdminUserStats, 2000);
 
         initCloud();
         // Avval ro'yxatdan o'tgan (reyestrda yo'q) foydalanuvchini ham qo'shib qo'yish
@@ -1421,16 +1184,13 @@
             const t = i18n[currentLang];
 
             if (currentUser) {
-                const isAdmin = currentUser.isAdmin;
                 const isPro = currentUser.isPro ? `<span class="bg-gradient-to-r from-amber-500 to-yellow-400 text-gray-950 font-black text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5"><i class="fa-solid fa-crown"></i> PRO</span>` : '';
-                const adminBadge = isAdmin ? `<span class="bg-amber-500 text-gray-950 font-bold text-[10px] px-1.5 py-0.5 rounded"><i class="fa-solid fa-shield-halved"></i> Admin</span>` : '';
 
                 container.innerHTML = `
-                    <button onclick="navigateTo('${isAdmin ? 'admin' : 'profile'}')" class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                    <button onclick="navigateTo('profile')" class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition">
                         <img src="${currentUser.avatar || 'https://picsum.photos/seed/user/100/100'}" class="w-6 h-6 rounded-full border border-blue-500">
                         <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${currentUser.name}</span>
-                        ${adminBadge}
-                        ${isPro}
+                                                ${isPro}
                     </button>
                 `;
                 if (premiumBtn) {
@@ -1469,7 +1229,7 @@
             else if (view === 'profile') renderProfile(content);
             else if (view === 'tasks') renderTasks(content);
             else if (view === 'contact') renderContact(content);
-            else if (view === 'admin') renderAdmin(content);
+
         }
 
         // HOME PAGE VIEW
@@ -1959,12 +1719,13 @@
 
         function renderCourseVideo(course) {
             const v = parseCourseVideo(course.videoUrl);
+            if (!v) return '';
             const box = 'aspect-video w-full rounded-3xl overflow-hidden shadow-lg bg-black';
             let body, badge = '';
             if (v && v.type === 'youtube') {
-                body = `<div class="${box}"><iframe src="${escapeHtml(v.src)}" class="w-full h-full" loading="lazy" allowfullscreen allow="encrypted-media; picture-in-picture; fullscreen" title="Kurs videosi"></iframe></div>`;
+                body = `<div id="cv-box" class="${box}"><iframe src="${escapeHtml(v.src)}" class="w-full h-full" loading="lazy" allowfullscreen allow="encrypted-media; picture-in-picture; fullscreen" title="Kurs videosi"></iframe></div>`;
             } else if (v && v.type === 'file') {
-                body = `<div class="${box}"><video src="${escapeHtml(v.src)}" class="w-full h-full" controls preload="metadata" playsinline></video></div>`;
+                body = `<div id="cv-box" class="${box}"><video src="${escapeHtml(v.src)}" class="w-full h-full" controls preload="metadata" playsinline></video></div>`;
             } else if (v) {
                 body = `<div class="aspect-video w-full rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center gap-4 text-white text-center p-6">
                             <i class="fa-solid fa-circle-play text-6xl"></i>
@@ -1975,7 +1736,7 @@
                 const scenes = buildCourseScenes(course);
                 cvCount = scenes.length;
                 badge = '<span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 text-[10px] font-bold rounded"><i class="fa-solid fa-wand-magic-sparkles"></i> Avto-taqdimot</span>';
-                const hint = (currentUser && currentUser.isAdmin) ? `<p class="text-xs text-gray-400 mt-2">Haqiqiy video qo'shish: Admin panel &rarr; Kurslarni boshqarish &rarr; VIDEO LINKI.</p>` : '';
+                const hint = '';
                 body = `<div id="cv-player" class="relative aspect-video w-full rounded-3xl overflow-hidden shadow-lg text-white select-none bg-gradient-to-br ${th.grad}">
                             ${scenes.map((sc, i) => `<div class="cv-scene absolute inset-0 flex flex-col items-center justify-center text-center px-6 sm:px-12 pb-10 transition-all duration-700 ${i === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}">${sc}</div>`).join('')}
                             <div class="absolute bottom-0 inset-x-0 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-3">
@@ -1986,9 +1747,252 @@
                         </div>${hint}`;
             }
             return `<div>
-                        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2">Kurs videosi ${badge}</h3>
+                        <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2">Kurs videosi ${badge}${(v && v.type !== 'link') ? `<button onclick="toggleFS('cv-box')" class="ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition"><i class="fa-solid fa-expand"></i> ${lpLab(["To'liq ekran", 'Fullscreen', 'Полный экран'])}</button>` : ''}</h3>
                         ${body}
                     </div>`;
+        }
+
+        // ===== VIDEO-DARSLAR (animatsiyali dars-videolar: so'zlar, qoidalar, mashqlar) =====
+        const EN_VOCAB = [
+            ["Salomlashish", [["hello", "salom", "Hello, how are you?"], ["goodbye", "xayr", "Goodbye, see you tomorrow!"], ["please", "iltimos", "Please, sit down."], ["thank you", "rahmat", "Thank you very much."], ["sorry", "kechirasiz", "Sorry, I am late."], ["welcome", "xush kelibsiz", "Welcome to our school."]]],
+            ["Oila", [["mother", "ona", "My mother is a doctor."], ["father", "ota", "My father works in an office."], ["brother", "aka / uka", "I have one brother."], ["sister", "opa / singil", "My sister likes music."], ["grandmother", "buvi", "My grandmother lives in a village."], ["child", "bola", "The child is playing."]]],
+            ["Ovqat", [["bread", "non", "I eat bread every morning."], ["water", "suv", "Can I have some water?"], ["apple", "olma", "This apple is sweet."], ["rice", "guruch", "We cook rice for dinner."], ["meat", "go'sht", "He does not eat meat."], ["tea", "choy", "I drink tea with lemon."]]],
+            ["Sayohat", [["ticket", "chipta", "I need a train ticket."], ["airport", "aeroport", "The airport is far from here."], ["hotel", "mehmonxona", "We stay in a small hotel."], ["passport", "pasport", "Do not forget your passport."], ["map", "xarita", "Look at the map."], ["luggage", "yuk", "My luggage is heavy."]]],
+            ["Ish", [["job", "ish, kasb", "She has a good job."], ["office", "ofis", "I go to the office by bus."], ["meeting", "yig'ilish", "The meeting starts at nine."], ["salary", "maosh", "His salary is high."], ["colleague", "hamkasb", "My colleague helps me."], ["deadline", "topshirish muddati", "The deadline is Friday."]]],
+            ["Vaqt", [["morning", "ertalab", "Good morning!"], ["evening", "kechqurun", "We walk in the evening."], ["week", "hafta", "There are seven days in a week."], ["month", "oy", "This month is busy."], ["yesterday", "kecha", "Yesterday was Monday."], ["tomorrow", "ertaga", "See you tomorrow."]]],
+            ["Uy", [["kitchen", "oshxona", "Mom is in the kitchen."], ["bedroom", "yotoqxona", "My bedroom is small."], ["window", "deraza", "Open the window, please."], ["door", "eshik", "Close the door."], ["table", "stol", "The book is on the table."], ["chair", "stul", "Take a chair."]]],
+            ["Sifatlar", [["big", "katta", "It is a big city."], ["small", "kichik", "I have a small dog."], ["beautiful", "chiroyli", "The garden is beautiful."], ["difficult", "qiyin", "This test is difficult."], ["easy", "oson", "The question is easy."], ["important", "muhim", "Health is important."]]]
+        ];
+        const EN_GRAM = [
+            { t: "To be: am / is / are", rule: "“Bo'lmoq” fe'li shaxsga qarab o'zgaradi: I — am, he / she / it — is, we / you / they — are.", f: "I am · He/She/It is · We/You/They are", ex: [["I am a student.", "Men talabaman."], ["She is a teacher.", "U o'qituvchi."], ["They are friends.", "Ular do'stlar."]], q: ["We ___ happy. (am / is / are)", "We are happy."] },
+            { t: "Present Simple", rule: "Odatiy, doimiy harakatlar uchun. He / she / it bilan fe'lga -s qo'shiladi. Savol va inkorda do / does ishlatiladi.", f: "V / V+s  ·  Do/Does + subject + V?", ex: [["I work every day.", "Men har kuni ishlayman."], ["She works in a bank.", "U bankda ishlaydi."], ["Does he work here?", "U shu yerda ishlaydimi?"]], q: ["She ___ (read) books every night.", "She reads books every night."] },
+            { t: "Artikllar: a / an / the", rule: "A — undosh tovushdan oldin, an — unli tovushdan oldin (bitta, noaniq narsa). The — aniq, ma'lum narsa uchun.", f: "a + undosh · an + unli · the + aniq narsa", ex: [["a book", "bitta kitob"], ["an apple", "bitta olma"], ["The sun is hot.", "Quyosh issiq."]], q: ["I have ___ umbrella. (a / an)", "I have an umbrella."] },
+            { t: "Ko'plik shakli", rule: "Ko'plik odatda -s bilan yasaladi. s, x, ch, sh dan keyin -es; undoshdan keyingi y — ies. Ba'zilari qoidasiz: man — men, child — children.", f: "+s · +es · y → ies · irregular", ex: [["one cat → two cats", "mushuk → mushuklar"], ["one box → two boxes", "quti → qutilar"], ["one child → two children", "bola → bolalar"]], q: ["One city → two ___", "Two cities."] },
+            { t: "Past Simple", rule: "O'tgan zamonda tugagan harakat. Muntazam fe'llarga -ed qo'shiladi, noto'g'rilari o'zgaradi (go — went). Savol va inkorda did + asosiy fe'l.", f: "V+ed / V2  ·  Did + subject + V?", ex: [["I visited Samarkand last year.", "Men o'tgan yili Samarqandga bordim."], ["She went home early.", "U uyga erta ketdi."], ["Did you see him?", "Siz uni ko'rdingizmi?"]], q: ["Yesterday I ___ (go) to school.", "Yesterday I went to school."] },
+            { t: "Present Continuous", rule: "Hozir sodir bo'layotgan harakat uchun: am / is / are + fe'l-ing.", f: "am / is / are + V-ing", ex: [["I am reading a book.", "Men kitob o'qiyapman."], ["He is sleeping.", "U uxlayapti."], ["They are playing football.", "Ular futbol o'ynayapti."]], q: ["She ___ (cook) now.", "She is cooking now."] },
+            { t: "Kelasi zamon: will", rule: "Kelajakdagi qaror yoki va'da uchun will + asosiy fe'l ishlatiladi.", f: "will + V", ex: [["I will call you tomorrow.", "Ertaga sizga qo'ng'iroq qilaman."], ["It will rain today.", "Bugun yomg'ir yog'adi."], ["We will win.", "Biz g'alaba qozonamiz."]], q: ["Tomorrow I ___ (visit) my aunt.", "Tomorrow I will visit my aunt."] },
+            { t: "Qiyoslash darajasi", rule: "Qisqa sifatlarga -er + than qo'shiladi, uzun sifatlar oldidan more qo'yiladi. Istisno: good — better, bad — worse.", f: "adj+er than · more + adj than", ex: [["He is taller than me.", "U mendan balandroq."], ["This book is more interesting.", "Bu kitob qiziqarliroq."], ["Today is better than yesterday.", "Bugun kechagidan yaxshiroq."]], q: ["My bag is ___ (heavy) than yours.", "My bag is heavier than yours."] }
+        ];
+        const ES_VOCAB = [
+            ["Salomlashish", [["hola", "salom", "¡Hola! ¿Cómo estás?"], ["adiós", "xayr", "Adiós, hasta mañana."], ["gracias", "rahmat", "Muchas gracias."], ["por favor", "iltimos", "Un café, por favor."], ["buenos días", "xayrli tong", "Buenos días, señora."], ["lo siento", "kechirasiz", "Lo siento, llego tarde."]]],
+            ["Ovqat", [["pan", "non", "Quiero pan."], ["agua", "suv", "Un vaso de agua."], ["manzana", "olma", "La manzana es dulce."], ["arroz", "guruch", "Comemos arroz."], ["carne", "go'sht", "No como carne."], ["té", "choy", "Bebo té caliente."]]],
+            ["Sayohat", [["billete", "chipta", "Necesito un billete."], ["aeropuerto", "aeroport", "El aeropuerto está lejos."], ["hotel", "mehmonxona", "El hotel es bonito."], ["pasaporte", "pasport", "Tengo mi pasaporte."], ["mapa", "xarita", "Mira el mapa."], ["maleta", "chamadon", "Mi maleta es grande."]]]
+        ];
+        const ES_GRAM = [
+            { t: "Artikllar: el / la", rule: "Ispan tilida har bir ot jinsga ega: erkak — el, ayol — la. Ko'plikda los / las.", f: "el + erkak · la + ayol · los / las", ex: [["el libro", "kitob"], ["la casa", "uy"], ["los niños", "bolalar"]], q: ["___ mesa (stol, ayol jinsi)", "la mesa"] },
+            { t: "Ser — bo'lmoq", rule: "Ser — doimiy xususiyat va kim ekanlikni bildiradi: yo soy, tú eres, él / ella es, nosotros somos, ellos son.", f: "soy · eres · es · somos · son", ex: [["Yo soy estudiante.", "Men talabaman."], ["Ella es profesora.", "U o'qituvchi."], ["Nosotros somos amigos.", "Biz do'stlarmiz."]], q: ["Tú ___ de Uzbekistán. (ser)", "Tú eres de Uzbekistán."] }
+        ];
+        const OUTLINES = {
+            programming: [["O'zgaruvchilar va turlar", ["O'zgaruvchi qiymat saqlaydi: name = 'Ali'", "Asosiy turlar: int, float, str, bool", "type() funksiyasi turni ko'rsatadi"]], ["Shartlar: if / else", ["if shart bajarilsa kod ishlaydi", "else — aks holda, elif — qo'shimcha shart", "Taqqoslash belgilari: ==, !=, >, <"]], ["Sikllar", ["for — ro'yxat elementlari bo'ylab yuradi", "while — shart to'g'ri bo'lguncha takrorlaydi", "break siklni to'xtatadi"]], ["Funksiyalar", ["def bilan funksiya e'lon qilinadi", "Parametr qabul qilib, return bilan qiymat qaytaradi", "Funksiya kodni qayta ishlatishga yordam beradi"]]],
+            mobile: [["Flutter va widgetlar", ["Flutter — Dart tilidagi interfeys kutubxonasi", "Hamma narsa widget: Text, Row, Column", "Widgetlar daraxt shaklida joylashadi"]], ["Stateless va Stateful", ["StatelessWidget o'zgarmaydi", "StatefulWidget setState() bilan yangilanadi", "Holat o'zgarsa ekran qayta chiziladi"]], ["Navigatsiya", ["Navigator.push yangi ekranni ochadi", "Navigator.pop orqaga qaytaradi", "Ekranlar orasida ma'lumot uzatish mumkin"]], ["API bilan ishlash", ["http paketi orqali so'rov yuboriladi", "JSON ma'lumot Dart obyektiga aylantiriladi", "FutureBuilder kutish holatini ko'rsatadi"]]],
+            data: [["Ma'lumot bilan tanishuv", ["Data Science — ma'lumotdan xulosa chiqarish", "pandas jadvallar (DataFrame) bilan ishlaydi", "Avval ma'lumotni tozalash kerak"]], ["Vizualizatsiya", ["matplotlib grafik chizadi", "Chiziqli, ustunli va doira diagrammalar bor", "Grafikka tushunarli sarlavha qo'ying"]], ["Machine Learning asoslari", ["Model ma'lumotdan o'rganadi", "Ma'lumot train va test qismlarga bo'linadi", "Aniqlik test ma'lumotida tekshiriladi"]], ["Birinchi model", ["scikit-learn tayyor modellar beradi", "fit() o'rgatadi, predict() bashorat qiladi", "Natija accuracy bilan baholanadi"]]],
+            uiux: [["UX nima?", ["UX — foydalanuvchi tajribasi", "Avval foydalanuvchi muammosini tushuning", "Oddiy va tushunarli interfeys — yaxshi UX"]], ["Figma bilan tanishuv", ["Frame — dizayn maydoni", "Rectangle, Text, Auto layout asosiy vositalar", "Komponentlar takroriy elementlarni tejaydi"]], ["Rang va shrift", ["Asosiy rang + 1-2 qo'shimcha rang", "Matn va fon kontrasti yetarli bo'lsin", "Ko'pi bilan 2 xil shrift ishlating"]], ["Prototip", ["Ekranlarni bir-biriga bog'lang", "Foydalanuvchi yo'lini sinab ko'ring", "Fikr-mulohazaga qarab yaxshilang"]]],
+            graphic: [["Kompozitsiya", ["Muvozanat va diqqat markazi", "Uchdan bir qoidasi", "Bo'sh joy ham dizaynning qismi"]], ["Photoshop qatlamlari", ["Har element alohida qatlamda bo'ladi", "Maska rasmni buzmasdan yashiradi", "Qatlamlarni nomlab boring"]], ["Illustrator va vektor", ["Vektor kattalashganda sifati buzilmaydi", "Pen tool bilan shakl chiziladi", "Logotip uchun vektor ishlatiladi"]], ["Eksport", ["Veb uchun PNG/JPG, bosma uchun PDF", "Bosma ishlarda CMYK rang rejimi", "Fayl o'lchamini tekshiring"]]],
+            smm: [["Maqsadli auditoriya", ["Auditoriya yoshi, qiziqishi va muammosini aniqlang", "Har platforma uchun alohida yondashuv kerak", "Auditoriya portretini tuzing"]], ["Kontent reja", ["Haftalik reja tuzing", "Foydali, qiziqarli va sotuvchi kontentni aralashtiring", "Doimiy vaqtda joylashing"]], ["Reklama", ["Maqsad: xabardorlik yoki sotuv", "Byudjet va auditoriya tanlanadi", "Bir nechta reklama variantini sinang"]], ["Tahlil", ["Qamrov, layk, kommentariya — asosiy ko'rsatkichlar", "Eng yaxshi kontentni takrorlang", "Natijaga qarab rejani yangilang"]]],
+            business: [["Biznes g'oya", ["G'oya real muammoni hal qilsin", "Mijozlardan so'rab tekshiring", "G'oyani bitta jumlada tushuntiring"]], ["Biznes model", ["Kimga, nima va qanday sotasiz", "Daromad manbalarini yozing", "Asosiy xarajatlarni hisoblang"]], ["Marketing", ["Mijozni qanday topishni belgilang", "Narx qiymatga mos bo'lsin", "Birinchi 10 mijozga e'tibor bering"]], ["Birinchi qadamlar", ["Kichik sinov (MVP) bilan boshlang", "Natijani o'lchang", "Xatolardan o'rganing"]]],
+            finance: [["Pul oqimi", ["Daromad va xarajatni yozib boring", "Pul oqimi musbat bo'lishi kerak", "Zaxira jamg'armasi tuzing"]], ["Buxgalteriya asoslari", ["Aktiv, majburiyat, kapital", "Har operatsiya hujjat bilan tasdiqlanadi", "Debet va kredit"]], ["Byudjet", ["50/30/20 qoidasi", "Majburiy va ixtiyoriy xarajatlarni ajrating", "Oy oxirida tahlil qiling"]], ["Soliqlar", ["Soliq turlari bilan tanishing", "Muddatlarni o'tkazib yubormang", "Hisobotlarni vaqtida topshiring"]]]
+        };
+        const TOPIC_GRAD = { english: 'from-amber-500 to-orange-800', spanish: 'from-rose-600 to-red-900', programming: 'from-blue-700 to-indigo-900', mobile: 'from-cyan-600 to-blue-900', data: 'from-teal-600 to-cyan-900', uiux: 'from-pink-600 to-purple-800', graphic: 'from-fuchsia-600 to-purple-900', smm: 'from-fuchsia-600 to-rose-800', business: 'from-emerald-600 to-teal-900', finance: 'from-green-600 to-emerald-900' };
+        const LP_UI = {
+            uz: { head: "Video-darslar", free: "Bepul", lockT: "Bu dars kursni sotib olgan yoki PRO foydalanuvchilar uchun ochiq", add: "Savatchaga qo'shish", voice: "Ovoz", scene: "Sahna" },
+            en: { head: "Video lessons", free: "Free", lockT: "This lesson is available to course buyers and PRO users", add: "Add to cart", voice: "Voice", scene: "Scene" },
+            ru: { head: "Видеоуроки", free: "Бесплатно", lockT: "Этот урок доступен тем, кто купил курс, и PRO-пользователям", add: "В корзину", voice: "Голос", scene: "Сцена" }
+        };
+        // ===== TO'LIQ EKRAN (barcha videolar uchun) =====
+        function toggleFS(id) {
+            const el = document.getElementById(id); if (!el) return;
+            const cur = document.fullscreenElement || document.webkitFullscreenElement;
+            if (cur) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+            const req = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (req) req.call(el);
+        }
+        function fsIconSync() {
+            const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            const i = document.querySelector('#lp-fs i');
+            if (i) i.className = 'fa-solid ' + (on ? 'fa-compress' : 'fa-expand');
+        }
+        document.addEventListener('fullscreenchange', fsIconSync);
+        document.addEventListener('webkitfullscreenchange', fsIconSync);
+
+        const LP_SCENE_MS = 5000;
+        let lp = { course: null, lessons: [], lens: [], i: 0, s: 0, el: 0, scenes: null, playing: false, timer: null, voice: true };
+        const lpLab = a => a[{ uz: 0, en: 1, ru: 2 }[currentLang] ?? 0];
+
+        function lessonTopic(c) {
+            const t = String(c.title || '');
+            if (/ingliz|english/i.test(t)) return 'english';
+            if (/ispan|spanish/i.test(t)) return 'spanish';
+            if (/data science|machine/i.test(t)) return 'data';
+            if (/flutter|mobile/i.test(t)) return 'mobile';
+            if (/full-?stack|python|react|web/i.test(t)) return 'programming';
+            if (/ui\/ux|figma/i.test(t)) return 'uiux';
+            if (/grafik|photoshop|illustrator/i.test(t)) return 'graphic';
+            if (/smm|marketing/i.test(t)) return 'smm';
+            if (/finans|buxgalter/i.test(t)) return 'finance';
+            return 'business';
+        }
+        function buildLessons(course) {
+            const tp = lessonTopic(course);
+            if (tp === 'english' || tp === 'spanish') {
+                const L = tp === 'english' ? { v: EN_VOCAB, g: EN_GRAM, lang: 'en-US' } : { v: ES_VOCAB, g: ES_GRAM, lang: 'es-ES' };
+                const out = [], n = Math.max(L.v.length, L.g.length);
+                for (let i = 0; i < n; i++) {
+                    if (L.v[i]) out.push({ type: 'vocab', title: "Yangi so'zlar: " + L.v[i][0], data: L.v[i][1], lang: L.lang });
+                    if (L.g[i]) out.push({ type: 'rule', title: "Qoida: " + L.g[i].t, data: L.g[i], lang: L.lang });
+                }
+                return out;
+            }
+            return (OUTLINES[tp] || OUTLINES.business).map(o => ({ type: 'outline', title: o[0], data: o[1] }));
+        }
+        function lessonScenes(l, idx) {
+            const E = escapeHtml, S = [];
+            const cap = (txt) => `<div class="text-xs uppercase tracking-widest text-white/70 mb-3">${txt}</div>`;
+            S.push({ h: cap(`${lpLab(['Dars', 'Lesson', 'Урок'])} ${idx + 1}`) + `<h4 class="text-2xl sm:text-4xl font-black leading-tight">${E(l.title)}</h4>` });
+            if (l.type === 'vocab') {
+                l.data.forEach((w, k) => S.push({
+                    say: [w[0], w[2]],
+                    h: cap(`${lpLab(["Yangi so'z", 'New word', 'Новое слово'])} ${k + 1}/${l.data.length}`) +
+                        `<div class="text-4xl sm:text-6xl font-black mb-2">${E(w[0])} <button data-say="${E(w[0])}" onclick="lpSay(this.dataset.say)" class="ml-2 text-xl align-middle opacity-80 hover:opacity-100"><i class="fa-solid fa-volume-high"></i></button></div>
+                         <div class="text-xl sm:text-3xl font-bold text-yellow-200 mb-4">${E(w[1])}</div>
+                         <div class="text-sm sm:text-lg italic text-white/90">“${E(w[2])}”</div>`
+                }));
+                S.push({ say: [l.data.map(w => w[0]).join('. ')], h: cap(lpLab(['Takrorlash', 'Review', 'Повторение'])) + `<div class="grid grid-cols-2 gap-x-8 gap-y-2 text-left text-sm sm:text-xl">${l.data.map(w => `<div><b>${E(w[0])}</b> <span class="text-white/70">— ${E(w[1])}</span></div>`).join('')}</div>` });
+            } else if (l.type === 'rule') {
+                const d = l.data;
+                S.push({ h: cap(lpLab(['Qoida', 'Rule', 'Правило'])) + `<p class="text-base sm:text-2xl font-semibold leading-relaxed max-w-2xl">${E(d.rule)}</p>` });
+                S.push({ h: cap(lpLab(['Formula', 'Formula', 'Формула'])) + `<div class="text-xl sm:text-4xl font-black font-mono bg-white/15 rounded-2xl px-5 py-4">${E(d.f)}</div>` });
+                S.push({ say: [d.ex.map(e => e[0]).join('. ')], h: cap(lpLab(['Misollar', 'Examples', 'Примеры'])) + `<div class="space-y-3 text-left">${d.ex.map(e => `<div><div class="text-base sm:text-2xl font-bold">${E(e[0])}</div><div class="text-xs sm:text-base text-yellow-200">${E(e[1])}</div></div>`).join('')}</div>` });
+                S.push({ h: cap(lpLab(['Mashq', 'Practice', 'Упражнение'])) + `<div class="text-lg sm:text-3xl font-bold">${E(d.q[0])}</div>` });
+                S.push({ say: [d.q[1]], h: cap(lpLab(['Javob', 'Answer', 'Ответ'])) + `<div class="text-lg sm:text-3xl font-black text-green-300"><i class="fa-solid fa-circle-check mr-2"></i>${E(d.q[1])}</div>` });
+            } else {
+                l.data.forEach((p, k) => S.push({ h: cap(`${k + 1}/${l.data.length}`) + `<p class="text-lg sm:text-3xl font-bold leading-snug max-w-2xl">${E(p)}</p>` }));
+                S.push({ h: cap(lpLab(['Takrorlash', 'Review', 'Повторение'])) + `<ul class="space-y-2 text-left text-sm sm:text-xl font-semibold">${l.data.map(p => `<li class="flex gap-3"><i class="fa-solid fa-circle-check mt-1 text-green-300"></i><span>${E(p)}</span></li>`).join('')}</ul>` });
+            }
+            return S;
+        }
+
+        function lpStop() {
+            if (lp.timer) clearInterval(lp.timer);
+            lp.timer = null; lp.playing = false;
+            try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) { }
+        }
+        function lpLocked(i) { return i > 0 && !(lp.course && (isPurchased(lp.course.id) || isProActive(currentUser))); }
+        function lpSpeak(text) {
+            const l = lp.lessons[lp.i];
+            if (!l || !l.lang || !window.speechSynthesis || !text) return;
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = l.lang; u.rate = 0.85;
+            speechSynthesis.speak(u);
+        }
+        function lpSay(text) { try { speechSynthesis.cancel(); } catch (e) { } lpSpeak(text); }
+        function lpSpeakScene() {
+            try { speechSynthesis.cancel(); } catch (e) { }
+            const sc = lp.scenes && lp.scenes[lp.s];
+            if (lp.voice && sc && sc.say) sc.say.forEach(t => lpSpeak(t));
+        }
+        function lpInit(course) {
+            lpStop();
+            if (!document.getElementById('lp-stage')) return;
+            lp.course = course; lp.lessons = buildLessons(course); lp.voice = true;
+            lp.lens = lp.lessons.map((l, i) => lessonScenes(l, i).length);
+            lpOpen(0, false);
+        }
+        function lpOpen(i, play) {
+            lpStop();
+            lp.i = i; lp.s = 0; lp.el = 0;
+            lp.scenes = lpLocked(i) ? null : lessonScenes(lp.lessons[i], i);
+            lpRender(); lpRenderList();
+            if (play && lp.scenes) lpToggle();
+        }
+        function lpBar() {
+            const bar = document.getElementById('lp-bar');
+            if (bar && lp.scenes) bar.style.width = ((lp.s + lp.el / LP_SCENE_MS) / lp.scenes.length * 100) + '%';
+        }
+        function lpRender() {
+            const st = document.getElementById('lp-scene'); if (!st) return;
+            const U = LP_UI[currentLang] || LP_UI.uz;
+            document.getElementById('lp-stage').className = 'relative aspect-video w-full rounded-3xl overflow-hidden shadow-lg text-white select-none bg-gradient-to-br ' + TOPIC_GRAD[lessonTopic(lp.course)];
+            const ctl = document.getElementById('lp-ctl');
+            if (!lp.scenes) {
+                ctl.classList.add('hidden');
+                st.innerHTML = `<i class="fa-solid fa-lock text-4xl mb-3"></i><p class="text-sm sm:text-lg font-semibold max-w-md mb-4">${U.lockT}</p>
+                    <div class="flex flex-wrap gap-2 justify-center"><button onclick="addToCart(${lp.course.id})" class="px-5 py-2 bg-white text-blue-700 font-bold rounded-xl text-sm">${U.add}</button><button onclick="navigateTo('pricing')" class="px-5 py-2 bg-amber-400 text-gray-900 font-bold rounded-xl text-sm"><i class="fa-solid fa-crown"></i> PRO</button></div>`;
+                return;
+            }
+            ctl.classList.remove('hidden');
+            st.innerHTML = lp.scenes[lp.s].h;
+            const L = lp.lessons[lp.i];
+            document.getElementById('lp-voice').classList.toggle('hidden', !L.lang);
+            document.getElementById('lp-voice').style.opacity = lp.voice ? 1 : 0.4;
+            document.getElementById('lp-count').textContent = `${U.scene} ${lp.s + 1}/${lp.scenes.length}`;
+            lpIcon(); lpBar();
+        }
+        function lpIcon() {
+            const ic = document.querySelector('#lp-toggle i');
+            const end = lp.scenes && lp.s >= lp.scenes.length - 1 && lp.el >= LP_SCENE_MS;
+            if (ic) ic.className = 'fa-solid ' + (lp.playing ? 'fa-pause' : (end ? 'fa-rotate-right' : 'fa-play'));
+        }
+        function lpRenderList() {
+            const box = document.getElementById('lp-list'); if (!box) return;
+            const U = LP_UI[currentLang] || LP_UI.uz;
+            box.innerHTML = lp.lessons.map((l, i) => {
+                const locked = lpLocked(i), sec = Math.round(lp.lens[i] * LP_SCENE_MS / 1000);
+                const tm = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+                const act = i === lp.i;
+                return `<button onclick="lpOpen(${i}, true)" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm transition ${act ? 'bg-blue-600 text-white' : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}">
+                    <span class="w-6 text-xs font-bold opacity-70">${i + 1}</span>
+                    <span class="flex-1 min-w-0 truncate font-semibold">${escapeHtml(l.title)}</span>
+                    ${i === 0 && locked === false && !isPurchased(lp.course.id) && !isProActive(currentUser) ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-700">${U.free}</span>` : ''}
+                    <span class="text-xs opacity-70">${tm}</span>
+                    <i class="fa-solid ${locked ? 'fa-lock opacity-60' : 'fa-circle-play'} text-xs"></i></button>`;
+            }).join('');
+        }
+        function lpTick() {
+            if (!document.getElementById('lp-stage') || !lp.scenes) { lpStop(); return; }
+            lp.el += 100;
+            if (lp.el >= LP_SCENE_MS) {
+                if (lp.s >= lp.scenes.length - 1) { lp.el = LP_SCENE_MS; lpStop(); lpIcon(); lpBar(); return; }
+                lp.s++; lp.el = 0; lpRender(); lpSpeakScene(); return;
+            }
+            lpBar();
+        }
+        function lpToggle() {
+            if (!lp.scenes) return;
+            if (lp.playing) { lpStop(); lpIcon(); return; }
+            if (lp.s >= lp.scenes.length - 1 && lp.el >= LP_SCENE_MS) { lp.s = 0; lp.el = 0; lpRender(); }
+            lp.playing = true; lpIcon(); lpSpeakScene();
+            lp.timer = setInterval(lpTick, 100);
+        }
+        function lpStep(d) {
+            if (!lp.scenes) return;
+            lp.s = Math.max(0, Math.min(lp.scenes.length - 1, lp.s + d)); lp.el = 0;
+            lpRender(); if (lp.playing) lpSpeakScene();
+        }
+        function lpVoice() { lp.voice = !lp.voice; if (!lp.voice) { try { speechSynthesis.cancel(); } catch (e) { } } else if (lp.playing) lpSpeakScene(); lpRender(); }
+
+        function renderLessonSection(course) {
+            const U = LP_UI[currentLang] || LP_UI.uz;
+            return `<div>
+                <style>#lp-stage:fullscreen,#lp-stage:-webkit-full-screen{border-radius:0;width:100%;height:100%;aspect-ratio:auto}#lp-stage:fullscreen #lp-scene,#lp-stage:-webkit-full-screen #lp-scene{zoom:1.7}</style>
+                <h3 class="text-xl font-bold mb-3 text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-film text-blue-500"></i> ${U.head}</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                    <div class="lg:col-span-3">
+                        <div id="lp-stage" class="relative aspect-video w-full rounded-3xl overflow-hidden shadow-lg text-white select-none bg-gradient-to-br from-blue-700 to-indigo-900">
+                            <div id="lp-scene" class="absolute inset-0 flex flex-col items-center justify-center text-center px-6 sm:px-12 pb-12"></div>
+                            <div id="lp-ctl" class="absolute bottom-0 inset-x-0 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent flex items-center gap-2">
+                                <button onclick="lpStep(-1)" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs"><i class="fa-solid fa-backward-step"></i></button>
+                                <button id="lp-toggle" onclick="lpToggle()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/35 text-sm"><i class="fa-solid fa-play"></i></button>
+                                <button onclick="lpStep(1)" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs"><i class="fa-solid fa-forward-step"></i></button>
+                                <div class="flex-1 h-1.5 bg-white/30 rounded-full overflow-hidden"><div id="lp-bar" class="h-full bg-white" style="width:0%"></div></div>
+                                <span id="lp-count" class="text-xs tabular-nums"></span>
+                                <button id="lp-fs" onclick="toggleFS('lp-stage')" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs" title="${lpLab(["To'liq ekran", 'Fullscreen', 'Полный экран'])}"><i class="fa-solid fa-expand"></i></button>
+                                <button id="lp-voice" onclick="lpVoice()" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/35 text-xs hidden" title="${U.voice}"><i class="fa-solid fa-volume-high"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="lp-list" class="lg:col-span-2 space-y-2 max-h-72 lg:max-h-[22rem] overflow-y-auto pr-1"></div>
+                </div>
+            </div>`;
         }
 
         function renderDetails(container, courseId) {
@@ -2007,9 +2011,10 @@
                             <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                                 <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-bold rounded-lg">${course.category}</span>
                                 <span><i class="fa-solid fa-star text-amber-500"></i> ${course.rating} (${course.reviewsCount} sharhlar)</span>
-                                <span><i class="fa-solid fa-play-circle text-blue-500"></i> ${course.lessonsCount} ta dars</span>
+                                <span><i class="fa-solid fa-play-circle text-blue-500"></i> ${buildLessons(course).length} ta dars</span>
                             </div>
                             ${renderCourseVideo(course)}
+                            ${renderLessonSection(course)}
                             <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
                                 <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Kurs Haqida</h3>
                                 <p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">${course.description}</p>
@@ -2032,6 +2037,7 @@
                 </div>
             `;
             initCourseVideoPlayer();
+            lpInit(course);
         }
 
         // PROFILE VIEW
@@ -2086,233 +2092,148 @@
             `;
         }
 
-        // ADMIN PANEL VIEW
-        function renderAdmin(container) {
-            if (!currentUser || !currentUser.isAdmin) {
-                container.innerHTML = `
-                    <div class="text-center py-20">
-                        <i class="fa-solid fa-shield-halved text-5xl text-amber-500 mb-4"></i>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Admin Kirish Talab Qilinadi</h2>
-                        <button onclick="openAdminModal()" class="px-6 py-2.5 bg-amber-500 text-gray-950 font-bold rounded-xl mt-4">
-                            Admin Panelga Kirish
-                        </button>
-                    </div>
-                `;
-                return;
-            }
+        // ===== SOTIB OLINGAN KURSLAR VA ULARGA OID TOPSHIRIQLAR =====
+        function purchasesKey() { return currentUser && currentUser.email ? 'eduflow_purchases_' + currentUser.email.trim().toLowerCase() : null; }
+        function getPurchases() { // [{id, at}]
+            const k = purchasesKey(); if (!k) return [];
+            try { const a = JSON.parse(localStorage.getItem(k)); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+        }
+        function savePurchases(list) {
+            const k = purchasesKey(); if (!k) return;
+            localStorage.setItem(k, JSON.stringify(list));
+            if (!cloudDb) return;
+            const id = currentUser.cloudId || encodeURIComponent(currentUser.email.trim().toLowerCase());
+            // update() hujjat mavjud bo'lmasa xato beradi, shuning uchun bo'sh "ruh" foydalanuvchi yaratilmaydi
+            cloudDb.collection('users').doc(id).update({ purchases: list }).catch(err => console.warn('Sotib olinganlarni bulutga yozib bo\'lmadi:', err.message));
+        }
+        function mergeCloudPurchases(cloudUsers) {
+            if (!currentUser || !currentUser.email) return;
+            const me = cloudUsers.find(u => (u.email || '').trim().toLowerCase() === currentUser.email.trim().toLowerCase());
+            if (!me || !Array.isArray(me.purchases)) return;
+            const local = getPurchases(), have = new Set(local.map(p => p.id));
+            let changed = false;
+            me.purchases.forEach(p => { if (p && !have.has(p.id)) { local.push(p); changed = true; } });
+            if (changed) localStorage.setItem(purchasesKey(), JSON.stringify(local));
+        }
+        function isPurchased(id) { return getPurchases().some(p => p.id === id); }
+        function doneKey() { return 'eduflow_tasks_done_' + currentUser.email.trim().toLowerCase(); }
+        function getDoneMap() { try { return JSON.parse(localStorage.getItem(doneKey())) || {}; } catch (e) { return {}; } }
+        function toggleTaskDone(courseId, idx) {
+            const m = getDoneMap(), k = courseId + '-' + idx;
+            if (m[k]) delete m[k]; else m[k] = new Date().toISOString();
+            localStorage.setItem(doneKey(), JSON.stringify(m));
+            navigateTo('tasks');
+        }
 
-            container.innerHTML = `
-                <div class="py-6 space-y-8">
-                    <!-- HEADER & ACTIONS -->
-                    <div class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white p-6 rounded-3xl border border-amber-500/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
-                        <div>
-                            <span class="px-3 py-1 bg-amber-500/20 text-amber-400 font-bold text-xs rounded-full uppercase tracking-wider">EduFlow Control Center</span>
-                            <h1 class="text-3xl font-black text-white mt-1 flex items-center gap-2">
-                                <i class="fa-solid fa-gauge-high text-amber-500"></i> Admin Boshqaruv Paneli
-                            </h1>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="openAdminPassModal()" class="px-4 py-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/40 font-bold rounded-xl text-xs transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-key"></i> Parolni Almashtirish
-                            </button>
-                            <button onclick="logoutAdmin()" class="px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40 font-bold rounded-xl text-xs transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-right-from-bracket"></i> Admin Chiqish
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- STATS CARDS -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-green-300 dark:border-green-700/60 shadow-sm flex items-center gap-4 relative">
-                            <span class="absolute top-3 right-3 flex items-center gap-1 text-[10px] font-bold text-green-600 dark:text-green-400 uppercase">
-                                <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span> Jonli
-                            </span>
-                            <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center text-xl font-bold">
-                                <i class="fa-solid fa-users"></i>
-                            </div>
-                            <div>
-                                <div id="admin-users-total" class="text-2xl font-black text-gray-900 dark:text-white transition-all duration-300">${getUsers().filter(u => !u.deleted).length}</div>
-                                <div class="text-xs text-gray-500 uppercase font-semibold">Ro'yxatdan o'tganlar</div>
-                            </div>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold">
-                                <i class="fa-solid fa-book"></i>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-black text-gray-900 dark:text-white">${coursesList.length}</div>
-                                <div class="text-xs text-gray-500 uppercase font-semibold">Jami Kurslar</div>
-                            </div>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center text-xl font-bold">
-                                <i class="fa-solid fa-layer-group"></i>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-black text-gray-900 dark:text-white">${categories.length}</div>
-                                <div class="text-xs text-gray-500 uppercase font-semibold">Kategoriyalar</div>
-                            </div>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold">
-                                <i class="fa-solid fa-crown"></i>
-                            </div>
-                            <div>
-                                <div class="text-2xl font-black text-gray-900 dark:text-white">PRO Active</div>
-                                <div class="text-xs text-gray-500 uppercase font-semibold">Tizim Statusi</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- REGISTERED USERS (LIVE) -->
-                    <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                            <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <i class="fa-solid fa-user-check text-green-600"></i> Ro'yxatdan o'tgan foydalanuvchilar
-                            </h3>
-                            <div class="flex flex-wrap gap-2 text-xs font-semibold">
-                                <span class="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">Bugun: <span id="admin-users-today">0</span></span>
-                                <span class="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">PRO: <span id="admin-users-pro">0</span></span>
-                                <span id="admin-cloud-status" class="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">-</span>
-                                <span class="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Yangilandi: <span id="admin-users-updated">-</span></span>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-2 mb-4">
-                            <button onclick="exportUsers()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition flex items-center gap-2">
-                                <i class="fa-solid fa-file-export"></i> Eksport
-                            </button>
-                            <button onclick="document.getElementById('admin-import-file').click()" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-xl text-sm font-semibold transition flex items-center gap-2">
-                                <i class="fa-solid fa-file-import"></i> Import
-                            </button>
-                            <input type="file" id="admin-import-file" accept=".json,application/json" class="hidden" onchange="importUsers(this)">
-                        </div>
-                        <div class="overflow-x-auto max-h-80 overflow-y-auto">
-                            <table class="w-full text-left text-sm">
-                                <thead class="text-xs uppercase text-gray-500 border-b border-gray-200 dark:border-gray-700">
-                                    <tr><th class="py-2 px-3">#</th><th class="py-2 px-3">Ism</th><th class="py-2 px-3">Email</th><th class="py-2 px-3">Sana</th><th class="py-2 px-3"></th></tr>
-                                </thead>
-                                <tbody id="admin-users-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- ADD NEW COURSE FORM -->
-                    <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-circle-plus text-blue-600"></i> Yangi Kurs Qo'shish
-                        </h3>
-                        <form onsubmit="handleAdminAddCourse(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">KURS NOMI</label>
-                                <input type="text" id="admin-add-title" required placeholder="Masalan: Python Django Noldan" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">KATEGORIYA</label>
-                                <select id="admin-add-category" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                                    ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">NARXI (UZS)</label>
-                                <input type="number" id="admin-add-price" required placeholder="250000" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">O'QITUVCHI</label>
-                                <input type="text" id="admin-add-instructor" required placeholder="Anvar Narzullayev" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">RASM LINKI (URL)</label>
-                                <input type="text" id="admin-add-image" placeholder="https://..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">VIDEO LINKI (YouTube yoki .mp4)</label>
-                                <input type="text" id="admin-add-video" placeholder="https://youtu.be/..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                            </div>
-                            <div class="md:col-span-2 lg:col-span-1 flex items-end">
-                                <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition text-sm">
-                                    + Qo'shish
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- COURSES TABLE MANAGEMENT -->
-                    <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-amber-500"></i> Kurslarni Boshqarish va Narxni Tahrirlash
-                        </h3>
-
-                        <div class="flex flex-wrap items-center gap-2 mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-800/50">
-                            <span class="text-xs font-bold text-purple-700 dark:text-purple-300"><i class="fa-solid fa-wand-magic-sparkles"></i> Kategoriyadagi barcha kurslarga video:</span>
-                            <select id="bulk-video-category" class="px-2 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">
-                                ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-                            </select>
-                            <input type="text" id="bulk-video-url" placeholder="https://youtu.be/... (bo'sh = o'chirish)" class="flex-1 min-w-[180px] px-2 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">
-                            <button onclick="applyVideoToCategory()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-bold transition">Qo'llash</button>
-                        </div>
-                        <div class="overflow-x-auto max-h-96 overflow-y-auto">
-                            <table class="w-full text-left border-collapse text-xs md:text-sm">
-                                <thead>
-                                    <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-500 uppercase font-bold text-[11px]">
-                                        <th class="py-3 px-2">ID</th>
-                                        <th class="py-3 px-2">KURS NOMI</th>
-                                        <th class="py-3 px-2">KATEGORIYA</th>
-                                        <th class="py-3 px-2">O'QITUVCHI</th>
-                                        <th class="py-3 px-2">NARXI (UZS)</th>
-                                        <th class="py-3 px-2">VIDEO LINKI</th>
-                                        <th class="py-3 px-2 text-right">AMALLAR</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${coursesList.map(c => `
-                                        <tr class="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                            <td class="py-2.5 px-2 font-mono text-gray-400">#${c.id}</td>
-                                            <td class="py-2.5 px-2 font-semibold text-gray-900 dark:text-white">${c.title}</td>
-                                            <td class="py-2.5 px-2"><span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold">${c.category}</span></td>
-                                            <td class="py-2.5 px-2 text-gray-500">${c.instructor}</td>
-                                            <td class="py-2.5 px-2 font-bold text-green-600 dark:text-green-400">
-                                                <input type="number" id="course-price-input-${c.id}" value="${c.price}" class="w-24 px-2 py-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">
-                                            </td>
-                                            <td class="py-2.5 px-2">
-                                                <input type="text" id="course-video-input-${c.id}" value="${escapeHtml(c.videoUrl || '')}" placeholder="https://..." class="w-40 px-2 py-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs">
-                                            </td>
-                                            <td class="py-2.5 px-2 text-right space-x-1">
-                                                <button onclick="saveAdminCoursePrice(${c.id})" class="px-2.5 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-xs font-bold" title="Narx va videoni saqlash">
-                                                    <i class="fa-solid fa-floppy-disk"></i>
-                                                </button>
-                                                <button onclick="deleteAdminCourse(${c.id})" class="px-2.5 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-xs font-bold" title="Kursni o'chirish">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            `;
-            refreshAdminUserStats();
+        // Har bir kategoriya uchun topshiriqlar: [sarlavha, tavsif] uz / en / ru
+        const TASK_BANK = {
+            "Dasturlash": [
+                [["Birinchi dastur", "Kursdagi 1-3 darslar asosida kichik dastur yozing va natijani ko'rsating."], ["First program", "Write a small program based on lessons 1-3 and show the result."], ["Первая программа", "Напишите небольшую программу по урокам 1–3 и покажите результат."]],
+                [["Mini-loyiha", "O'rganganlaringizdan foydalanib, mini-loyiha (masalan, to-do ro'yxat) yarating."], ["Mini project", "Build a mini project (e.g. a to-do list) using what you learned."], ["Мини-проект", "Создайте мини-проект (например, список дел), используя изученное."]],
+                [["Yakuniy loyiha", "Kurs mavzulari bo'yicha to'liq loyiha tayyorlab, kodini GitHub ga joylang."], ["Final project", "Prepare a complete project on course topics and publish the code on GitHub."], ["Итоговый проект", "Подготовьте полный проект по темам курса и выложите код на GitHub."]]
+            ],
+            "Dizayn": [
+                [["Rang va shrift tanlash", "O'zingiz tanlagan mavzu uchun rang palitrasi va shriftlar to'plamini tuzing."], ["Colors and fonts", "Create a color palette and font set for a topic of your choice."], ["Цвета и шрифты", "Составьте палитру и набор шрифтов для выбранной темы."]],
+                [["Bitta ekran dizayni", "Mobil ilova uchun bitta ekran maketini chizing."], ["Single screen design", "Design one screen mockup for a mobile app."], ["Дизайн одного экрана", "Нарисуйте макет одного экрана мобильного приложения."]],
+                [["Portfolio ishi", "Kurs mavzulari bo'yicha to'liq ish tayyorlab, portfolioga qo'shing."], ["Portfolio piece", "Prepare a complete piece on course topics and add it to your portfolio."], ["Работа для портфолио", "Подготовьте законченную работу по темам курса и добавьте в портфолио."]]
+            ],
+            "Biznes": [
+                [["G'oya tahlili", "Biznes g'oyangizni bir sahifada yozing: muammo, yechim, mijoz."], ["Idea analysis", "Describe your business idea on one page: problem, solution, customer."], ["Анализ идеи", "Опишите бизнес-идею на одной странице: проблема, решение, клиент."]],
+                [["Moliyaviy reja", "Dastlabki xarajat va daromadlarni hisoblab, oddiy jadval tuzing."], ["Financial plan", "Estimate initial costs and revenue and make a simple table."], ["Финансовый план", "Рассчитайте первоначальные расходы и доходы и составьте простую таблицу."]],
+                [["Taqdimot", "Biznes loyihangiz uchun 5 slaydli taqdimot tayyorlang."], ["Pitch deck", "Prepare a 5-slide presentation for your business project."], ["Презентация", "Подготовьте презентацию проекта из 5 слайдов."]]
+            ],
+            "Chet tillari": [
+                [["Lug'at topshirig'i", "Kursdagi yangi 30 ta so'zni gaplarda qo'llab yozing."], ["Vocabulary task", "Use 30 new words from the course in sentences."], ["Задание по лексике", "Составьте предложения с 30 новыми словами из курса."]],
+                [["Yozma ish", "Berilgan mavzuda 150 so'zli insho yozing."], ["Writing task", "Write a 150-word essay on the given topic."], ["Письменная работа", "Напишите эссе на 150 слов по заданной теме."]],
+                [["Gapirish mashqi", "O'zingiz haqingizda 2 daqiqalik audio yozib oling."], ["Speaking practice", "Record a 2-minute audio about yourself."], ["Разговорная практика", "Запишите двухминутное аудио о себе."]]
+            ],
+            "SMM & Marketing": [
+                [["Auditoriya tahlili", "Tanlangan mahsulot uchun maqsadli auditoriya portretini tuzing."], ["Audience analysis", "Build a target audience profile for a chosen product."], ["Анализ аудитории", "Составьте портрет целевой аудитории выбранного продукта."]],
+                [["Kontent reja", "Bir hafta uchun ijtimoiy tarmoq kontent rejasini yozing."], ["Content plan", "Write a one-week social media content plan."], ["Контент-план", "Составьте контент-план для соцсетей на неделю."]],
+                [["Reklama kampaniyasi", "Kichik reklama kampaniyasi g'oyasi va byudjetini tayyorlang."], ["Ad campaign", "Prepare an idea and budget for a small ad campaign."], ["Рекламная кампания", "Подготовьте идею и бюджет небольшой рекламной кампании."]]
+            ]
+        };
+        const TASK_UI = {
+            uz: { watch: "Darslarni ko'rish", title: "Amaliy Topshiriqlar", loginTitle: "Topshiriqlarni ko'rish uchun tizimga kiring", login: "Kirish", emptyTitle: "Hozircha topshiriqlar yo'q", emptyDesc: "Kursni sotib olganingizdan keyin shu kursga oid topshiriqlar shu yerda paydo bo'ladi.", toCatalog: "Kurslarni ko'rish", bought: "Sotib olingan", due: "Muddati", left: "kun qoldi", todayDue: "bugun tugaydi", overdue: "Muddati o'tgan", pending: "Kutilmoqda", done: "Bajarildi", markDone: "Bajarildi deb belgilash", undo: "Bekor qilish", task: "Topshiriq", progress: "bajarildi" },
+            en: { watch: "Watch lessons", title: "Practical Assignments", loginTitle: "Log in to see your assignments", login: "Log in", emptyTitle: "No assignments yet", emptyDesc: "Once you purchase a course, its assignments will appear here.", toCatalog: "Browse courses", bought: "Purchased", due: "Due", left: "days left", todayDue: "due today", overdue: "Overdue", pending: "Pending", done: "Done", markDone: "Mark as done", undo: "Undo", task: "Assignment", progress: "done" },
+            ru: { watch: "Смотреть уроки", title: "Практические задания", loginTitle: "Войдите, чтобы увидеть задания", login: "Войти", emptyTitle: "Пока заданий нет", emptyDesc: "После покупки курса задания по нему появятся здесь.", toCatalog: "Смотреть курсы", bought: "Куплено", due: "Срок", left: "дн. осталось", todayDue: "срок сегодня", overdue: "Просрочено", pending: "Ожидается", done: "Выполнено", markDone: "Отметить выполненным", undo: "Отменить", task: "Задание", progress: "выполнено" }
+        };
+        function tasksForCourse(course) {
+            const bank = TASK_BANK[course.category] || TASK_BANK["Dasturlash"];
+            const li = { uz: 0, en: 1, ru: 2 }[currentLang] ?? 0;
+            return bank.map(t => ({ title: t[li][0], desc: t[li][1] }));
         }
 
         // TASKS VIEW
         function renderTasks(container) {
+            const U = TASK_UI[currentLang] || TASK_UI.uz;
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div class="text-center py-20">
+                        <i class="fa-solid fa-user-lock text-5xl text-blue-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">${U.loginTitle}</h2>
+                        <button onclick="openAuthModal()" class="mt-4 px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl">${U.login}</button>
+                    </div>`;
+                return;
+            }
+            const purchases = getPurchases().filter(p => coursesList.some(c => c.id === p.id));
+            if (purchases.length === 0) {
+                container.innerHTML = `
+                    <div class="py-12 max-w-4xl mx-auto space-y-6">
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-blue-600"></i> ${U.title}</h1>
+                        <div class="bg-white dark:bg-gray-800 p-10 rounded-2xl border border-gray-200 dark:border-gray-700 text-center">
+                            <i class="fa-solid fa-clipboard-list text-5xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">${U.emptyTitle}</h3>
+                            <p class="text-sm text-gray-500 mb-5">${U.emptyDesc}</p>
+                            <button onclick="navigateTo('catalog')" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">${U.toCatalog}</button>
+                        </div>
+                    </div>`;
+                return;
+            }
+            const doneMap = getDoneMap(), now = new Date();
+            const blocks = purchases.slice().reverse().map(p => {
+                const course = coursesList.find(c => c.id === p.id);
+                const tasks = tasksForCourse(course);
+                const doneCount = tasks.filter((_, i) => doneMap[p.id + '-' + i]).length;
+                const rows = tasks.map((t, i) => {
+                    const isDone = !!doneMap[p.id + '-' + i];
+                    const due = new Date(new Date(p.at).getTime() + (i + 1) * 7 * 86400000);
+                    const days = Math.ceil((due - now) / 86400000);
+                    let badge, dueText;
+                    if (isDone) { badge = `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">${U.done}</span>`; dueText = ''; }
+                    else if (days < 0) { badge = `<span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">${U.overdue}</span>`; dueText = `${U.due}: ${fmtDate(due)}`; }
+                    else { badge = `<span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">${U.pending}</span>`; dueText = `${U.due}: ${fmtDate(due)} · ` + (days === 0 ? U.todayDue : `${days} ${U.left}`); }
+                    return `
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-gray-900 dark:text-white ${isDone ? 'line-through opacity-60' : ''}">${U.task} #${i + 1}: ${escapeHtml(t.title)}</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">${escapeHtml(t.desc)}</p>
+                                ${dueText ? `<p class="text-xs text-gray-500 mt-1">${dueText}</p>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                ${badge}
+                                <button onclick="toggleTaskDone(${p.id}, ${i})" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition">${isDone ? U.undo : U.markDone}</button>
+                            </div>
+                        </div>`;
+                }).join('');
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">${escapeHtml(course.title)}</h3>
+                                <p class="text-xs text-gray-500">${U.bought}: ${fmtDate(p.at)}</p>
+                                <button onclick="navigateTo('details', ${p.id})" class="text-xs font-semibold text-blue-600 hover:underline mt-1"><i class="fa-solid fa-circle-play"></i> ${U.watch}</button>
+                            </div>
+                            <span class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700">${doneCount}/${tasks.length} ${U.progress}</span>
+                        </div>
+                        <div class="space-y-3">${rows}</div>
+                    </div>`;
+            }).join('');
             container.innerHTML = `
                 <div class="py-12 max-w-4xl mx-auto space-y-6">
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-blue-600"></i> Amaliy Topshiriqlar
-                    </h1>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex items-center justify-between">
-                            <div>
-                                <h4 class="font-bold text-gray-900 dark:text-white">Python OOP - Amaliy topshiriq #1</h4>
-                                <p class="text-xs text-gray-500">Muddati: 3 kun qoldi</p>
-                            </div>
-                            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">Kutilmoqda</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-blue-600"></i> ${U.title}</h1>
+                    ${blocks}
+                </div>`;
         }
 
         // CONTACT VIEW
@@ -2417,12 +2338,17 @@
 
         function processCheckout() {
             if (cart.length === 0) return;
-            alert("To'lov muvaffaqiyatli amalga oshirildi! Kurslar profilingizga biriktirildi.");
+            if (!currentUser) { closeCartModal(); openAuthModal(); return; }
+            // Sotib olingan kurslarni foydalanuvchiga biriktirish
+            const purchases = getPurchases(), have = new Set(purchases.map(p => p.id)), at = new Date().toISOString();
+            cart.forEach(c => { if (!have.has(c.id)) purchases.push({ id: c.id, at }); });
+            savePurchases(purchases);
+            alert("To'lov muvaffaqiyatli amalga oshirildi! Kurslar profilingizga biriktirildi. Kursga oid topshiriqlar \"Topshiriqlar\" bo'limida paydo bo'ldi.");
             cart = [];
             localStorage.setItem('eduflow_cart', JSON.stringify(cart));
             updateCartAndBookmarkCounts();
             closeCartModal();
-            navigateTo('profile');
+            navigateTo('tasks');
         }
 
         // ===== PRO TARIFLAR: 1 oylik va 1 yillik =====
@@ -2445,7 +2371,7 @@
             return d;
         }
 
-        function persistCurrentUser() { localStorage.setItem('eduflow_admin_session', JSON.stringify(currentUser)); }
+        function persistCurrentUser() { localStorage.setItem('eduflow_current_user', JSON.stringify(currentUser)); }
 
         // Muddati tugagan PRO ni o'chirish; eski (muddatsiz) PRO ga 1 oy berish
         function enforceProExpiry() {
@@ -2521,6 +2447,7 @@
         let authMode = 'login';
         function setAuthMode(mode) {
             authMode = mode === 'register' ? 'register' : 'login';
+            resetAuthCode();
             const reg = authMode === 'register';
             document.getElementById('auth-name-wrap').classList.toggle('hidden', !reg);
             document.getElementById('auth-name').required = reg;
@@ -2533,13 +2460,103 @@
             setAuthMode(mode);
             document.getElementById('auth-modal').classList.remove('hidden');
         }
-        function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
+        function closeAuthModal() { resetAuthCode(); document.getElementById('auth-modal').classList.add('hidden'); }
+
+
+        // ===== EMAIL TASDIQLASH KODI =====
+        // Kod haqiqiy pochtaga yuborilishi uchun https://www.emailjs.com da bepul akkaunt oching
+        // va quyidagi 3 qiymatni to'ldiring. Bo'sh qolsa — TEST REJIMI (kod ekranda ko'rsatiladi).
+        const EMAIL_CONFIG = { serviceId: 'service_ck5z5f6', templateId: 'template_v045sef', publicKey: 'L6ugd2WcQeA0Qv-FZ' };
+        const CODE_TTL_MS = 10 * 60 * 1000, CODE_COOLDOWN_S = 60, CODE_MAX_TRIES = 5;
+        let authCode = null;          // { email, codes[], expires, tries }
+        let codeCooldownTimer = null;
+        let lastMailError = '';
+
+        function resetAuthCode() {
+            authCode = null;
+            clearInterval(codeCooldownTimer);
+            const wrap = document.getElementById('auth-code-wrap');
+            if (!wrap) return;
+            wrap.classList.add('hidden');
+            const inp = document.getElementById('auth-code'); inp.value = ''; inp.required = false;
+            document.getElementById('auth-code-hint').textContent = '';
+            const btn = document.getElementById('auth-send-code-btn'); btn.disabled = false; btn.textContent = 'Kod yuborish';
+        }
+        function onAuthEmailInput() {
+            const v = document.getElementById('auth-email').value.trim().toLowerCase();
+            if (authCode && authCode.email !== v) resetAuthCode();
+        }
+        function startCodeCooldown() {
+            const btn = document.getElementById('auth-send-code-btn');
+            let sec = CODE_COOLDOWN_S;
+            clearInterval(codeCooldownTimer);
+            const tick = () => {
+                if (sec <= 0) { clearInterval(codeCooldownTimer); btn.disabled = false; btn.textContent = 'Qayta yuborish'; return; }
+                btn.disabled = true; btn.textContent = `Qayta yuborish (${sec} s)`; sec--;
+            };
+            tick(); codeCooldownTimer = setInterval(tick, 1000);
+        }
+        async function deliverAuthCode(email, name, code) {
+            const c = EMAIL_CONFIG;
+            if (!c.serviceId || !c.templateId || !c.publicKey) return 'test';
+            try {
+                const r = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service_id: c.serviceId, template_id: c.templateId, user_id: c.publicKey,
+                        template_params: {
+                            to_email: email, user_name: name, app_name: 'EduFlow', minutes: 10,
+                            code: code, passcode: code,
+                            time: (() => { const d = new Date(Date.now() + CODE_TTL_MS), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}`; })()
+                        }
+                    })
+                });
+                if (r.ok) return 'sent';
+                lastMailError = `${r.status} ${(await r.text()).slice(0, 160)}`.trim();
+                console.error('EmailJS xatosi:', lastMailError);
+                return 'failed';
+            } catch (err) { lastMailError = String(err && err.message || err).slice(0, 160); console.error('EmailJS xatosi:', err); return 'failed'; }
+        }
+        async function sendAuthCode() {
+            const emailEl = document.getElementById('auth-email');
+            const email = emailEl.value.trim();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { alert("Email manzilini to'g'ri kiriting."); emailEl.focus(); return; }
+            const key = email.toLowerCase();
+            const existing = getUsers().find(u => !u.deleted && (u.email || '').toLowerCase() === key);
+            if (authMode === 'register' && existing) { alert("Bu email bilan akkaunt allaqachon mavjud. Iltimos, tizimga kiring."); return; }
+            if (authMode === 'login' && !existing) { alert("Bunday akkaunt topilmadi. Avval \"Akkaunt yaratish\" tugmasi orqali ro'yxatdan o'ting."); return; }
+            const btn = document.getElementById('auth-send-code-btn');
+            btn.disabled = true;
+            const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 900000 + 100000);
+            const name = authMode === 'register' ? document.getElementById('auth-name').value.trim() : existing.name;
+            const status = await deliverAuthCode(email, name, code);
+            if (status === 'failed') { alert("Kod yuborilmadi. Birozdan so'ng qayta urinib ko'ring." + (lastMailError ? ` (${lastMailError})` : '')); btn.disabled = false; return; }
+            const same = authCode && authCode.email === key && Date.now() < authCode.expires;
+            authCode = { email: key, codes: [code, ...(same ? authCode.codes : [])].slice(0, 3), expires: Date.now() + CODE_TTL_MS, tries: same ? authCode.tries : 0 };
+            document.getElementById('auth-code-wrap').classList.remove('hidden');
+            const inp = document.getElementById('auth-code'); inp.value = ''; inp.required = true; inp.focus();
+            document.getElementById('auth-code-hint').textContent = status === 'sent'
+                ? `Kod ${email} manziliga yuborildi. 10 daqiqa amal qiladi.`
+                : `Test rejimi: email xizmati ulanmagan. Kod: ${code}`;
+            startCodeCooldown();
+        }
 
         function handleAuthSubmit(e) {
             e.preventDefault();
             const email = document.getElementById('auth-email').value.trim();
             const key = email.toLowerCase();
             const existing = getUsers().find(u => !u.deleted && (u.email || '').toLowerCase() === key);
+
+            if (!authCode || authCode.email !== key) { alert("Avval emailga kod yuboring."); return; }
+            if (Date.now() > authCode.expires) { resetAuthCode(); alert("Kod muddati tugadi. Yangi kod so'rang."); return; }
+            if (!authCode.codes.includes(document.getElementById('auth-code').value.replace(/\D/g, ''))) {
+                authCode.tries++;
+                if (authCode.tries >= CODE_MAX_TRIES) { resetAuthCode(); alert("Urinishlar soni tugadi. Yangi kod so'rang."); }
+                else alert("Kod noto'g'ri. Qaytadan urinib ko'ring.");
+                return;
+            }
+            resetAuthCode();
 
             if (authMode === 'register') {
                 if (existing) { alert("Bu email bilan akkaunt allaqachon mavjud. Iltimos, tizimga kiring."); return; }
@@ -2556,7 +2573,7 @@
                     ...(existing.proUntil ? { proPlan: existing.proPlan || 'monthly', proUntil: existing.proUntil } : {})
                 };
             }
-            localStorage.setItem('eduflow_admin_session', JSON.stringify(currentUser));
+            localStorage.setItem('eduflow_current_user', JSON.stringify(currentUser));
             registerUserInRegistry(currentUser);
             updateHeaderAuthUI();
             closeAuthModal();
@@ -2565,137 +2582,10 @@
 
         function logoutUser() {
             currentUser = null;
-            localStorage.removeItem('eduflow_admin_session');
+            localStorage.removeItem('eduflow_current_user');
             checkAccountStatus();
             updateHeaderAuthUI();
             navigateTo('home');
-        }
-
-        // ADMIN LOGIC
-        function handleAdminNavClick() {
-            if (currentUser && currentUser.isAdmin) {
-                navigateTo('admin');
-            } else {
-                openAdminModal();
-            }
-        }
-
-        function openAdminModal() { document.getElementById('admin-modal').classList.remove('hidden'); }
-        function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
-
-        function handleAdminLogin(e) {
-            e.preventDefault();
-            const login = document.getElementById('admin-login-input').value;
-            const pass = document.getElementById('admin-pass-input').value;
-
-            if (login === adminCredentials.login && pass === adminCredentials.pass) {
-                currentUser = {
-                    name: "EduFlow Admin",
-                    email: "admin@eduflow.uz",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-                    isPro: true,
-                    isAdmin: true
-                };
-                localStorage.setItem('eduflow_admin_session', JSON.stringify(currentUser));
-                updateHeaderAuthUI();
-                closeAdminModal();
-                navigateTo('admin');
-            } else {
-                alert("Login yoki parol xato!");
-            }
-        }
-
-        function logoutAdmin() {
-            currentUser = null;
-            localStorage.removeItem('eduflow_admin_session');
-            updateHeaderAuthUI();
-            navigateTo('home');
-        }
-
-        function openAdminPassModal() { document.getElementById('admin-pass-modal').classList.remove('hidden'); }
-        function closeAdminPassModal() { document.getElementById('admin-pass-modal').classList.add('hidden'); }
-
-        function handleChangeAdminPassword(e) {
-            e.preventDefault();
-            const curr = document.getElementById('curr-admin-pass').value;
-            const newP = document.getElementById('new-admin-pass').value;
-            const confP = document.getElementById('confirm-admin-pass').value;
-
-            if (curr !== adminCredentials.pass) {
-                alert("Hozirgi parol noto'g'ri kiritildi!");
-                return;
-            }
-            if (newP !== confP) {
-                alert("Yangi parol va tasdiqlash paroli mos kelmadi!");
-                return;
-            }
-
-            adminCredentials.pass = newP;
-            localStorage.setItem('eduflow_admin_credentials', JSON.stringify(adminCredentials));
-            alert("Admin paroli muvaffaqiyatli o'zgartirildi!");
-            closeAdminPassModal();
-        }
-
-        function handleAdminAddCourse(e) {
-            e.preventDefault();
-            const title = document.getElementById('admin-add-title').value;
-            const category = document.getElementById('admin-add-category').value;
-            const price = parseInt(document.getElementById('admin-add-price').value);
-            const instructor = document.getElementById('admin-add-instructor').value;
-            const image = document.getElementById('admin-add-image').value || courseImageFor({ title, category });
-            const videoUrl = document.getElementById('admin-add-video').value.trim();
-            if (videoUrl && !parseCourseVideo(videoUrl)) { alert("Video havolasi noto'g'ri. https:// bilan boshlanadigan havola kiriting."); return; }
-
-            const newCourse = {
-                id: coursesList.length + 1,
-                title,
-                category,
-                price,
-                instructor,
-                image,
-                rating: "5.0",
-                reviewsCount: 1,
-                lessonsCount: 10,
-                description: "Admin tomonidan kiritilgan yangi interaktiv kurs.",
-                videoUrl
-            };
-
-            coursesList.unshift(newCourse);
-            saveCoursesToStorage();
-            renderAdmin(document.getElementById('app-content'));
-        }
-
-        function saveAdminCoursePrice(id) {
-            const inputEl = document.getElementById(`course-price-input-${id}`);
-            if (!inputEl) return;
-            const newPrice = parseInt(inputEl.value);
-            const course = coursesList.find(c => c.id === id);
-            const videoEl = document.getElementById(`course-video-input-${id}`);
-            const videoUrl = videoEl ? videoEl.value.trim() : (course ? course.videoUrl || '' : '');
-            if (videoUrl && !parseCourseVideo(videoUrl)) { alert("Video havolasi noto'g'ri. https:// bilan boshlanadigan havola kiriting."); return; }
-            if (course && !isNaN(newPrice)) {
-                course.price = newPrice;
-                course.videoUrl = videoUrl;
-                saveCoursesToStorage();
-                alert(`Kurs #${id} yangilandi: narx ${newPrice.toLocaleString()} UZS${videoUrl ? ', video saqlandi' : ''}.`);
-            }
-        }
-
-        function applyVideoToCategory() {
-            const cat = document.getElementById('bulk-video-category').value;
-            const url = document.getElementById('bulk-video-url').value.trim();
-            if (url && !parseCourseVideo(url)) { alert("Video havolasi noto'g'ri. https:// bilan boshlanadigan havola kiriting."); return; }
-            const list = coursesList.filter(c => c.category === cat);
-            if (!confirm(`"${cat}" kategoriyasidagi ${list.length} ta kursga ${url ? 'shu videoni qo\'llaymizmi?' : 'videoni o\'chiramizmi?'}`)) return;
-            list.forEach(c => { c.videoUrl = url; });
-            saveCoursesToStorage();
-            renderAdmin(document.getElementById('app-content'));
-        }
-
-        function deleteAdminCourse(id) {
-            coursesList = coursesList.filter(c => c.id !== id);
-            saveCoursesToStorage();
-            renderAdmin(document.getElementById('app-content'));
         }
 
         // EDIT PROFILE MODAL
@@ -2720,7 +2610,7 @@
             currentUser.avatar = document.getElementById('edit-avatar-input').value || currentUser.avatar;
             currentUser.bio = document.getElementById('edit-bio-input').value;
 
-            localStorage.setItem('eduflow_admin_session', JSON.stringify(currentUser));
+            localStorage.setItem('eduflow_current_user', JSON.stringify(currentUser));
             registerUserInRegistry(currentUser, oldEmail);
             updateHeaderAuthUI();
             closeEditNameModal();
@@ -2748,43 +2638,17 @@
                 ["EMAIL / LOGIN", "EMAIL / LOGIN", "EMAIL / ЛОГИН"],
                 ["PAROL", "PASSWORD", "ПАРОЛЬ"],
                 ["Kirish", "Sign in", "Войти"],
+                ["Kod yuborish", "Send code", "Отправить код"],
+                ["Qayta yuborish", "Resend", "Отправить снова"],
+                ["POCHTANGIZGA KELGAN KOD", "CODE SENT TO YOUR EMAIL", "КОД, ПРИШЕДШИЙ НА ПОЧТУ"],
+                ["Email manzilini to'g'ri kiriting.", "Enter a valid email address.", "Введите корректный адрес электронной почты."],
+                ["Avval emailga kod yuboring.", "Send the code to your email first.", "Сначала отправьте код на почту."],
+                ["Kod noto'g'ri. Qaytadan urinib ko'ring.", "Incorrect code. Please try again.", "Неверный код. Попробуйте ещё раз."],
+                ["Kod muddati tugadi. Yangi kod so'rang.", "The code has expired. Request a new one.", "Срок действия кода истёк. Запросите новый."],
+                ["Urinishlar soni tugadi. Yangi kod so'rang.", "Too many attempts. Request a new code.", "Попытки закончились. Запросите новый код."],
+                ["Kod yuborilmadi. Birozdan so'ng qayta urinib ko'ring.", "The code could not be sent. Please try again in a moment.", "Не удалось отправить код. Повторите попытку чуть позже."],
                 ["Aloqa", "Contact", "Контакты"],
                 ["ta dars", "lessons", "уроков"],
-                ["Profilni boshqarish", "Manage Profile", "Управление профилем"],
-                ["Ism, parol va profil rasmini shu yerda boshqaring", "Manage your name, password and profile picture here", "Управляйте именем, паролем и фото профиля здесь"],
-                ["Ismni tahrirlash", "Edit Name", "Изменить имя"],
-                ["Admin panelda ko'rinadigan ismingizni o'zgartiring", "Change the name shown in the admin panel", "Измените имя, отображаемое в админ-панели"],
-                ["Parolni tahrirlash", "Edit Password", "Изменить пароль"],
-                ["Admin paneliga kirish parolini yangilang", "Update your admin panel password", "Обновите пароль для входа в админ-панель"],
-                ["Rasmni tahrirlash", "Edit Picture", "Изменить фото"],
-                ["Profil rasmini havola orqali yoki kompyuterdan o'rnating", "Set your profile picture via a link or from your computer", "Установите фото профиля по ссылке или с компьютера"],
-                ["← Admin panelga qaytish", "← Back to admin panel", "← Назад в админ-панель"],
-                ["← Profilni boshqarishga qaytish", "← Back to Manage Profile", "← Назад к управлению профилем"],
-                ["← Rasmni tahrirlashga qaytish", "← Back to Edit Picture", "← Назад к изменению фото"],
-                ["Rasm havolasi", "Image link", "Ссылка на изображение"],
-                ["Rasm manzilini (URL) kiritib o'rnating", "Set it by entering an image address (URL)", "Укажите адрес изображения (URL)"],
-                ["Kompyuterdan yuklash", "Upload from computer", "Загрузить с компьютера"],
-                ["Qurilmangizdagi rasm faylini tanlang", "Choose an image file from your device", "Выберите файл изображения на устройстве"],
-                ["Rasmni qanday o'rnatmoqchisiz?", "How would you like to set the picture?", "Как вы хотите установить фото?"],
-                ["Hozirgi rasm", "Current picture", "Текущее фото"],
-                ["Bu ism sarlavhada va admin panelda ko'rinadi", "This name is shown in the header and the admin panel", "Это имя отображается в шапке и админ-панели"],
-                ["Yangi parol keyingi kirishda talab qilinadi", "The new password will be required next time you sign in", "Новый пароль потребуется при следующем входе"],
-                ["ADMIN ISMI", "ADMIN NAME", "ИМЯ АДМИНА"],
-                ["Saqlash", "Save", "Сохранить"],
-                ["Parolni yangilash", "Update Password", "Обновить пароль"],
-                ["Rasmni saqlash", "Save Picture", "Сохранить фото"],
-                ["RASM HAVOLASI (URL)", "IMAGE LINK (URL)", "ССЫЛКА НА ИЗОБРАЖЕНИЕ (URL)"],
-                ["Ko'rib chiqish", "Preview", "Предпросмотр"],
-                ["Rasm yuklanmadi. Havolani tekshiring.", "Image failed to load. Check the link.", "Не удалось загрузить изображение. Проверьте ссылку."],
-                ["Rasm faylini shu yerga tashlang yoki tanlash uchun bosing", "Drop an image file here or click to choose", "Перетащите файл изображения сюда или нажмите для выбора"],
-                ["PNG, JPG yoki WEBP · 5 MB gacha", "PNG, JPG or WEBP · up to 5 MB", "PNG, JPG или WEBP · до 5 МБ"],
-                ["Ism muvaffaqiyatli o'zgartirildi!", "Name changed successfully!", "Имя успешно изменено!"],
-                ["Profil rasmi muvaffaqiyatli o'zgartirildi!", "Profile picture changed successfully!", "Фото профиля успешно изменено!"],
-                ["Rasm havolasi noto'g'ri. https:// bilan boshlanadigan havola kiriting.", "Invalid image link. Enter a link starting with https://.", "Неверная ссылка на изображение. Введите ссылку, начинающуюся с https://."],
-                ["Faqat rasm fayllari (PNG, JPG, WEBP) yuklash mumkin.", "Only image files (PNG, JPG, WEBP) can be uploaded.", "Можно загружать только изображения (PNG, JPG, WEBP)."],
-                ["Fayl hajmi 5 MB dan oshmasligi kerak.", "File size must not exceed 5 MB.", "Размер файла не должен превышать 5 МБ."],
-                ["Rasmni o'qib bo'lmadi.", "Could not read the image.", "Не удалось прочитать изображение."],
-                ["Asosiy sayt", "Main site", "Главный сайт"],
                 ["Akkaunt yaratish", "Create Account", "Создать аккаунт"],
                 ["Akkauntingiz yo'qmi?", "Don't have an account?", "Нет аккаунта?"],
                 ["Akkauntingiz bormi?", "Already have an account?", "Уже есть аккаунт?"],
@@ -2879,7 +2743,6 @@
                 ["Savatchada", "In Cart", "В корзине"],
                 ["Savatchaga Qo'shish", "Add to Cart", "В корзину"],
                 // placeholder / title
-                ["Akkountga kirish", "Log in to account", "Войти в аккаунт"],
                 ["Foydalanuvchini o'chirish", "Delete user", "Удалить пользователя"],
                 ["Search...", "Search...", "Поиск...", "Qidirish..."],
                 ["Kurs videosi", "Course video", "Видео курса"],
@@ -2949,6 +2812,10 @@
                     en: m => `PRO until ${m[1]} (${m[2]} days left)` + (m[3] ? '. A new subscription extends the period.' : ''),
                     ru: m => `PRO до ${m[1]} (осталось ${m[2]} дн.)` + (m[3] ? '. Новая подписка продлит срок.' : '')
                 },
+                { re: /^Kod yuborilmadi\. Birozdan so'ng qayta urinib ko'ring\.(?: \(([\s\S]*)\))?$/, en: m => `The code could not be sent. Please try again in a moment.${m[1] ? ` (${m[1]})` : ''}`, ru: m => `Не удалось отправить код. Повторите попытку чуть позже.${m[1] ? ` (${m[1]})` : ''}` },
+                { re: /^Qayta yuborish \((\d+) s\)$/, en: m => `Resend (${m[1]} s)`, ru: m => `Отправить снова (${m[1]} с)` },
+                { re: /^Kod (.+) manziliga yuborildi\. 10 daqiqa amal qiladi\.$/, en: m => `The code was sent to ${m[1]}. It is valid for 10 minutes.`, ru: m => `Код отправлен на ${m[1]}. Действителен 10 минут.` },
+                { re: /^Test rejimi: email xizmati ulanmagan\. Kod: (\d+)$/, en: m => `Test mode: email service is not connected. Code: ${m[1]}`, ru: m => `Тестовый режим: почтовый сервис не подключён. Код: ${m[1]}` },
                 { re: /^Obunani tasdiqlash \((.+)\)$/, en: m => `Confirm subscription (${m[1]})`, ru: m => `Подтвердить подписку (${m[1]})` },
                 { re: /^Muddati: (\d+) kun qoldi$/, en: m => `Due: ${m[1]} days left`, ru: m => `Срок: осталось ${m[1]} дн.` },
                 { re: /^Kurs videosi(.*)$/, en: m => `Course video${m[1]}`, ru: m => `Видео курса${m[1]}` },
@@ -3026,7 +2893,7 @@
                 while ((n = w.nextNode())) { if (n.nodeType === 3) doText(n); else doEl(n); }
             }
 
-            const TITLES = { uz: "EduFlow Admin", en: "EduFlow Admin", ru: "EduFlow Админ" };
+            const TITLES = { uz: "EduFlow - Onlayn Ta'lim Platformasi", en: "EduFlow - Online Education Platform", ru: "EduFlow — онлайн-платформа обучения" };
             const OPTS = { childList: true, subtree: true, characterData: true };
             const mo = new MutationObserver(recs => {
                 mo.disconnect();
@@ -3063,286 +2930,6 @@
         })();
     </script>
 
-
-    <style>
-        /* Admin sayt: faqat admin boshqaruvi ko'rinadi */
-        #nav-catalog,
-        #nav-pricing,
-        #nav-tasks,
-        #nav-contact,
-        #premium-header-btn,
-        footer,
-        #main-login-btn,
-        #main-register-btn,
-        header button[onclick*="openCartModal"],
-        header button[onclick*="navigateTo('profile')"] {
-            display: none !important;
-        }
-
-        header nav {
-            display: flex !important;
-        }
-    </style>
-    <script>
-        /* ===== Admin sayt: "Profilni boshqarish" (har bir amal alohida sahifa) ===== */
-        (function () {
-            const SESSION_KEY = 'eduflow_admin_session', PROFILE_KEY = 'eduflow_admin_profile';
-            const PAGES = ['panel', 'profile', 'profile-name', 'profile-password', 'profile-avatar', 'profile-avatar-link', 'profile-avatar-upload'];
-            const fromHash = () => { const h = decodeURIComponent((location.hash || '').slice(1)); return PAGES.includes(h) ? h : 'panel'; };
-            let adminPage = fromHash(), first = true, pendingAvatar = null;
-            const isAdmin = () => !!(typeof currentUser !== 'undefined' && currentUser && currentUser.isAdmin);
-            const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-            const DEFAULT_AVATAR = 'https://picsum.photos/seed/admin/100/100';
-
-            /* ---------- marshrutlash ---------- */
-            const _nav = window.navigateTo;
-            window.navigateTo = function (v) {
-                if (first) { first = false; }
-                else if (v !== 'admin' && adminPage !== 'panel') {
-                    adminPage = 'panel';
-                    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
-                }
-                return _nav('admin');
-            };
-            window.showAdminPage = function (p) {
-                if (!PAGES.includes(p)) p = 'panel';
-                if (!isAdmin()) { openAdminModal(); return; }
-                adminPage = p;
-                const target = p === 'panel' ? '' : '#' + p;
-                if (location.hash === target || (!target && !location.hash)) _nav('admin');
-                else location.hash = target;
-                window.scrollTo(0, 0);
-            };
-            window.addEventListener('hashchange', () => { adminPage = fromHash(); _nav('admin'); window.scrollTo(0, 0); });
-            const _han = window.handleAdminNavClick;
-            window.handleAdminNavClick = function () { if (isAdmin()) showAdminPage('panel'); else _han(); };
-            window.goAdminProfile = function () { if (isAdmin()) showAdminPage('profile'); else openAdminModal(); };
-
-            /* kirishdan keyin saqlangan ism/rasmni tiklash */
-            const _hal = window.handleAdminLogin;
-            window.handleAdminLogin = function (e) {
-                _hal(e);
-                if (isAdmin()) {
-                    try {
-                        const pr = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
-                        if (pr) { if (pr.name) currentUser.name = pr.name; if (pr.avatar) currentUser.avatar = pr.avatar; localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); }
-                    } catch (err) { }
-                    if (typeof updateHeaderAuthUI === 'function') updateHeaderAuthUI();
-                }
-            };
-            function save() {
-                localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-                localStorage.setItem(PROFILE_KEY, JSON.stringify({ name: currentUser.name, avatar: currentUser.avatar }));
-                if (typeof updateHeaderAuthUI === 'function') updateHeaderAuthUI();
-            }
-
-            /* ---------- umumiy bo'laklar ---------- */
-            const CARD = 'bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm';
-            const INPUT = 'w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm';
-            const LABEL = 'block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1';
-            const BTN = 'px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold rounded-lg transition text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed';
-            const BACK = 'inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg transition text-sm';
-            const crumbs = items => `<nav class="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">` +
-                items.map(it => it.p ? `<button onclick="showAdminPage('${it.p}')" class="hover:text-amber-500 transition">${it.t}</button>` : `<span class="text-gray-800 dark:text-gray-200 font-semibold">${it.t}</span>`).join('<span>&rsaquo;</span>') + `</nav>`;
-            const head = (icon, title, sub) => `<div class="mb-6"><h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3"><i class="fa-solid ${icon} text-amber-500"></i> ${title}</h1>${sub ? `<p class="text-gray-500 dark:text-gray-400 mt-1">${sub}</p>` : ''}</div>`;
-            const back = (p, t) => `<button type="button" onclick="showAdminPage('${p}')" class="${BACK}">${t}</button>`;
-            const optionCard = (p, icon, title, desc) => `
-        <button onclick="showAdminPage('${p}')" class="text-left ${CARD} p-6 hover:border-amber-500/60 hover:shadow-md transition flex items-start gap-4 w-full">
-            <span class="shrink-0 w-12 h-12 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center text-xl"><i class="fa-solid ${icon}"></i></span>
-            <span class="flex-1"><span class="block font-bold text-lg text-gray-900 dark:text-white">${title}</span><span class="block text-sm text-gray-500 dark:text-gray-400 mt-1">${desc}</span></span>
-            <i class="fa-solid fa-chevron-right text-gray-400 mt-1"></i>
-        </button>`;
-            const avatarOf = () => esc((currentUser && currentUser.avatar) || DEFAULT_AVATAR);
-            const wrap = html => `<div class="max-w-3xl mx-auto">${html}</div>`;
-
-            /* ---------- sahifalar ---------- */
-            const PAGE = {
-                'profile': () => wrap(`
-            ${crumbs([{ p: 'panel', t: 'Admin Boshqaruv Paneli' }, { t: 'Profilni boshqarish' }])}
-            ${head('fa-user-gear', 'Profilni boshqarish', 'Ism, parol va profil rasmini shu yerda boshqaring')}
-            <div class="${CARD} p-6 flex items-center gap-5 mb-6">
-                <img src="${avatarOf()}" alt="" class="w-20 h-20 rounded-full object-cover border-4 border-amber-500/40">
-                <div class="min-w-0">
-                    <div class="text-xl font-bold text-gray-900 dark:text-white truncate">${esc(currentUser.name)}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 truncate">${esc(currentUser.email)}</div>
-                    <span class="inline-block mt-2 bg-amber-500 text-gray-950 font-bold text-[10px] px-2 py-0.5 rounded">Admin</span>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 gap-4">
-                ${optionCard('profile-name', 'fa-user-pen', 'Ismni tahrirlash', "Admin panelda ko'rinadigan ismingizni o'zgartiring")}
-                ${optionCard('profile-password', 'fa-key', 'Parolni tahrirlash', 'Admin paneliga kirish parolini yangilang')}
-                ${optionCard('profile-avatar', 'fa-image', 'Rasmni tahrirlash', "Profil rasmini havola orqali yoki kompyuterdan o'rnating")}
-            </div>
-            <div class="mt-6">${back('panel', '&larr; Admin panelga qaytish')}</div>`),
-
-                'profile-name': () => wrap(`
-            ${crumbs([{ p: 'panel', t: 'Admin Boshqaruv Paneli' }, { p: 'profile', t: 'Profilni boshqarish' }, { t: 'Ismni tahrirlash' }])}
-            ${head('fa-user-pen', 'Ismni tahrirlash', "Bu ism sarlavhada va admin panelda ko'rinadi")}
-            <form onsubmit="adminSaveName(event)" class="${CARD} p-6 space-y-4">
-                <div>
-                    <label class="${LABEL}">ADMIN ISMI</label>
-                    <input type="text" id="apn-input" required maxlength="60" value="${esc(currentUser.name)}" class="${INPUT}">
-                </div>
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button type="submit" class="${BTN}">Saqlash</button>
-                    ${back('profile', '&larr; Profilni boshqarishga qaytish')}
-                </div>
-            </form>`),
-
-                'profile-password': () => wrap(`
-            ${crumbs([{ p: 'panel', t: 'Admin Boshqaruv Paneli' }, { p: 'profile', t: 'Profilni boshqarish' }, { t: 'Parolni tahrirlash' }])}
-            ${head('fa-key', 'Parolni tahrirlash', 'Yangi parol keyingi kirishda talab qilinadi')}
-            <form onsubmit="adminSavePassword(event)" class="${CARD} p-6 space-y-4">
-                <div><label class="${LABEL}">HOZIRGI PAROL</label><input type="password" id="app-curr" required class="${INPUT}"></div>
-                <div><label class="${LABEL}">YANGI PAROL</label><input type="password" id="app-new" required class="${INPUT}"></div>
-                <div><label class="${LABEL}">YANGI PAROLNI TASDIQLASH</label><input type="password" id="app-conf" required class="${INPUT}"></div>
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button type="submit" class="${BTN}">Parolni yangilash</button>
-                    ${back('profile', '&larr; Profilni boshqarishga qaytish')}
-                </div>
-            </form>`),
-
-                'profile-avatar': () => wrap(`
-            ${crumbs([{ p: 'panel', t: 'Admin Boshqaruv Paneli' }, { p: 'profile', t: 'Profilni boshqarish' }, { t: 'Rasmni tahrirlash' }])}
-            ${head('fa-image', 'Rasmni tahrirlash', "Rasmni qanday o'rnatmoqchisiz?")}
-            <div class="${CARD} p-6 flex items-center gap-5 mb-6">
-                <img src="${avatarOf()}" alt="" class="w-20 h-20 rounded-full object-cover border-4 border-amber-500/40">
-                <div class="font-semibold text-gray-700 dark:text-gray-200">Hozirgi rasm</div>
-            </div>
-            <div class="grid grid-cols-1 gap-4">
-                ${optionCard('profile-avatar-link', 'fa-link', 'Rasm havolasi', "Rasm manzilini (URL) kiritib o'rnating")}
-                ${optionCard('profile-avatar-upload', 'fa-upload', 'Kompyuterdan yuklash', 'Qurilmangizdagi rasm faylini tanlang')}
-            </div>
-            <div class="mt-6">${back('profile', '&larr; Profilni boshqarishga qaytish')}</div>`),
-
-                'profile-avatar-link': () => wrap(`
-            ${crumbs([{ p: 'panel', t: 'Admin Boshqaruv Paneli' }, { p: 'profile', t: 'Profilni boshqarish' }, { p: 'profile-avatar', t: 'Rasmni tahrirlash' }, { t: 'Rasm havolasi' }])}
-            ${head('fa-link', 'Rasm havolasi', "Rasm manzilini (URL) kiritib o'rnating")}
-            <form onsubmit="adminSaveLink(event)" class="${CARD} p-6 space-y-4">
-                <div>
-                    <label class="${LABEL}">RASM HAVOLASI (URL)</label>
-                    <input type="text" id="apl-input" required placeholder="https://..." oninput="adminPreviewLink(this.value)" class="${INPUT}">
-                </div>
-                <div>
-                    <div class="${LABEL}">Ko'rib chiqish</div>
-                    <div class="flex items-center gap-4">
-                        <img id="apl-preview" src="${avatarOf()}" alt="" class="w-24 h-24 rounded-full object-cover border-4 border-amber-500/40" onload="document.getElementById('apl-err').classList.add('hidden')" onerror="document.getElementById('apl-err').classList.remove('hidden')">
-                        <p id="apl-err" class="hidden text-sm text-red-500">Rasm yuklanmadi. Havolani tekshiring.</p>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button type="submit" class="${BTN}">Rasmni saqlash</button>
-                    ${back('profile-avatar', '&larr; Rasmni tahrirlashga qaytish')}
-                </div>
-            </form>`),
-
-                'profile-avatar-upload': () => {
-                    pendingAvatar = null; return wrap(`
-            ${crumbs([{ p: 'panel', t: 'Admin Boshqaruv Paneli' }, { p: 'profile', t: 'Profilni boshqarish' }, { p: 'profile-avatar', t: 'Rasmni tahrirlash' }, { t: 'Kompyuterdan yuklash' }])}
-            ${head('fa-upload', 'Kompyuterdan yuklash', 'Qurilmangizdagi rasm faylini tanlang')}
-            <div class="${CARD} p-6 space-y-4">
-                <input type="file" id="apu-file" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="adminAvatarFile(this.files[0])">
-                <label for="apu-file" ondragover="event.preventDefault()" ondrop="event.preventDefault();adminAvatarFile(event.dataTransfer.files[0])" class="flex flex-col items-center justify-center text-center gap-2 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-amber-500 rounded-2xl py-10 px-4 cursor-pointer transition">
-                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-amber-500"></i>
-                    <span class="font-semibold text-gray-700 dark:text-gray-200">Rasm faylini shu yerga tashlang yoki tanlash uchun bosing</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG yoki WEBP · 5 MB gacha</span>
-                </label>
-                <div>
-                    <div class="${LABEL}">Ko'rib chiqish</div>
-                    <img id="apu-preview" src="${avatarOf()}" alt="" class="w-24 h-24 rounded-full object-cover border-4 border-amber-500/40">
-                </div>
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button type="button" id="apu-save" onclick="adminSaveUpload()" disabled class="${BTN}">Rasmni saqlash</button>
-                    ${back('profile-avatar', '&larr; Rasmni tahrirlashga qaytish')}
-                </div>
-            </div>`);
-                }
-            };
-
-            const _ra = window.renderAdmin;
-            window.renderAdmin = function (c) {
-                if (!isAdmin() || adminPage === 'panel' || !PAGE[adminPage]) {
-                    _ra(c);
-                    if (isAdmin()) {
-                        const b = c.querySelector('button[onclick="openAdminPassModal()"]');
-                        if (b && !c.querySelector('#admin-profile-btn')) {
-                            const n = document.createElement('button');
-                            n.id = 'admin-profile-btn'; n.setAttribute('onclick', "showAdminPage('profile')");
-                            n.className = b.className;
-                            n.innerHTML = '<i class="fa-solid fa-user-gear"></i> Profilni boshqarish';
-                            b.parentNode.insertBefore(n, b);
-                        }
-                    }
-                    return;
-                }
-                c.innerHTML = PAGE[adminPage]();
-            };
-
-            /* ---------- amallar ---------- */
-            window.adminSaveName = function (e) {
-                e.preventDefault();
-                const v = document.getElementById('apn-input').value.trim();
-                if (!v) return;
-                currentUser.name = v; save();
-                alert("Ism muvaffaqiyatli o'zgartirildi!");
-                showAdminPage('profile');
-            };
-            window.adminSavePassword = function (e) {
-                e.preventDefault();
-                const curr = document.getElementById('app-curr').value, nw = document.getElementById('app-new').value, conf = document.getElementById('app-conf').value;
-                if (curr !== adminCredentials.pass) { alert("Hozirgi parol noto'g'ri kiritildi!"); return; }
-                if (nw !== conf) { alert('Yangi parol va tasdiqlash paroli mos kelmadi!'); return; }
-                adminCredentials.pass = nw;
-                localStorage.setItem('eduflow_admin_credentials', JSON.stringify(adminCredentials));
-                alert("Admin paroli muvaffaqiyatli o'zgartirildi!");
-                showAdminPage('profile');
-            };
-            window.adminPreviewLink = function (v) {
-                const img = document.getElementById('apl-preview'), err = document.getElementById('apl-err');
-                v = (v || '').trim();
-                if (/^https?:\/\//i.test(v)) img.src = v;
-                else { err.classList.add('hidden'); img.src = (currentUser && currentUser.avatar) || DEFAULT_AVATAR; }
-            };
-            window.adminSaveLink = function (e) {
-                e.preventDefault();
-                const v = document.getElementById('apl-input').value.trim();
-                if (!/^https?:\/\//i.test(v)) { alert('Rasm havolasi noto\'g\'ri. https:// bilan boshlanadigan havola kiriting.'); return; }
-                currentUser.avatar = v; save();
-                alert("Profil rasmi muvaffaqiyatli o'zgartirildi!");
-                showAdminPage('profile');
-            };
-            window.adminAvatarFile = function (file) {
-                if (!file) return;
-                if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) { alert('Faqat rasm fayllari (PNG, JPG, WEBP) yuklash mumkin.'); return; }
-                if (file.size > 5 * 1024 * 1024) { alert('Fayl hajmi 5 MB dan oshmasligi kerak.'); return; }
-                const fail = () => alert("Rasmni o'qib bo'lmadi.");
-                const fr = new FileReader();
-                fr.onerror = fail;
-                fr.onload = () => {
-                    const img = new Image();
-                    img.onerror = fail;
-                    img.onload = () => {
-                        const S = 256, cv = document.createElement('canvas');
-                        cv.width = cv.height = S;
-                        const m = Math.min(img.width, img.height);
-                        cv.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S);
-                        pendingAvatar = cv.toDataURL('image/jpeg', 0.88);
-                        const pv = document.getElementById('apu-preview'), sv = document.getElementById('apu-save');
-                        if (pv) pv.src = pendingAvatar;
-                        if (sv) sv.disabled = false;
-                    };
-                    img.src = fr.result;
-                };
-                fr.readAsDataURL(file);
-            };
-            window.adminSaveUpload = function () {
-                if (!pendingAvatar) return;
-                currentUser.avatar = pendingAvatar; pendingAvatar = null; save();
-                alert("Profil rasmi muvaffaqiyatli o'zgartirildi!");
-                showAdminPage('profile');
-            };
-        })();
-    </script>
 </body>
 
 </html>
