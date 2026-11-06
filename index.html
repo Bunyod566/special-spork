@@ -1080,7 +1080,196 @@
             banner.classList.toggle('hidden', !missing);
         }
 
+
+        // ===== SHARXLAR (Firestore: "comments" kolleksiyasi) =====
+        // Sharxlar bulutga yoziladi, shuning uchun barcha brauzer va kompyuterlarda real vaqtda ko'rinadi.
+        const commentsText = {
+            uz: {
+                title: "Foydalanuvchilar sharxlari", desc: "Platforma haqida fikringizni qoldiring — hamma ko'ra oladi",
+                btn: "Sharx qoldirish", modalTitle: "Sharx qoldirish", name: "ISMINGIZ", namePh: "Ali Valiyev",
+                rating: "BAHO", text: "SHARXINGIZ", textPh: "Fikringizni shu yerga yozing...", send: "Yuborish", sending: "Yuborilmoqda...",
+                empty: "Hozircha sharxlar yo'q. Birinchi bo'lib yozing!", loading: "Sharxlar yuklanmoqda...",
+                off: "Sharxlar uchun Firebase ulanmagan.", error: "Sharxlarni yuklab bo'lmadi. Firebase Console > Firestore > Rules bo'limida 'comments' uchun ruxsat bering.",
+                needName: "Ismingizni kiriting (kamida 2 belgi).", needText: "Sharx matnini yozing (kamida 3 belgi).",
+                wait: "Iltimos, keyingi sharxni yuborishdan oldin biroz kuting.", sendErr: "Sharx yuborilmadi. Internetni va Firebase ruxsatlarini tekshiring.",
+                thanks: "Rahmat! Sharxingiz qo'shildi.", count: "ta sharx"
+            },
+            en: {
+                title: "User comments", desc: "Leave your opinion about the platform — everyone can see it",
+                btn: "Leave a comment", modalTitle: "Leave a comment", name: "YOUR NAME", namePh: "John Smith",
+                rating: "RATING", text: "YOUR COMMENT", textPh: "Write your thoughts here...", send: "Submit", sending: "Sending...",
+                empty: "No comments yet. Be the first to write one!", loading: "Loading comments...",
+                off: "Firebase is not connected for comments.", error: "Could not load comments. In Firebase Console > Firestore > Rules, allow access to 'comments'.",
+                needName: "Enter your name (at least 2 characters).", needText: "Write your comment (at least 3 characters).",
+                wait: "Please wait a little before sending another comment.", sendErr: "Comment was not sent. Check your internet and Firebase rules.",
+                thanks: "Thank you! Your comment was added.", count: "comments"
+            },
+            ru: {
+                title: "Отзывы пользователей", desc: "Оставьте своё мнение о платформе — его увидят все",
+                btn: "Оставить отзыв", modalTitle: "Оставить отзыв", name: "ВАШЕ ИМЯ", namePh: "Али Валиев",
+                rating: "ОЦЕНКА", text: "ВАШ ОТЗЫВ", textPh: "Напишите ваше мнение здесь...", send: "Отправить", sending: "Отправка...",
+                empty: "Пока отзывов нет. Напишите первым!", loading: "Загрузка отзывов...",
+                off: "Firebase для отзывов не подключён.", error: "Не удалось загрузить отзывы. В Firebase Console > Firestore > Rules разрешите доступ к 'comments'.",
+                needName: "Введите имя (минимум 2 символа).", needText: "Напишите отзыв (минимум 3 символа).",
+                wait: "Пожалуйста, подождите перед отправкой следующего отзыва.", sendErr: "Отзыв не отправлен. Проверьте интернет и правила Firebase.",
+                thanks: "Спасибо! Ваш отзыв добавлен.", count: "отзывов"
+            }
+        };
+        let commentsCache = [];
+        let commentsState = 'off'; // off | loading | on | error
+        let commentRating = 5;
+
+        function ct() { return commentsText[currentLang] || commentsText.uz; }
+
+        function initComments() {
+            if (!cloudDb) { commentsState = 'off'; return; }
+            commentsState = 'loading';
+            cloudDb.collection('comments').orderBy('createdAt', 'desc').limit(60).onSnapshot(snap => {
+                const list = [];
+                snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                commentsCache = list;
+                commentsState = 'on';
+                refreshCommentsList();
+            }, err => {
+                console.error('Sharxlar xatosi:', err);
+                commentsState = 'error';
+                refreshCommentsList();
+            });
+        }
+
+        function starsHtml(n) {
+            n = Math.max(1, Math.min(5, parseInt(n) || 5));
+            return Array.from({ length: 5 }, (_, i) => `<i class="fa-solid fa-star ${i < n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'}"></i>`).join('');
+        }
+
+        function renderCommentsList() {
+            const c = ct();
+            if (commentsState === 'off') return `<p class="text-sm text-gray-500 text-center py-6">${c.off}</p>`;
+            if (commentsState === 'error') return `<p class="text-sm text-red-600 dark:text-red-400 text-center py-6">${c.error}</p>`;
+            if (commentsState === 'loading') return `<p class="text-sm text-gray-500 text-center py-6"><i class="fa-solid fa-spinner fa-spin mr-2"></i>${c.loading}</p>`;
+            if (!commentsCache.length) return `<p class="text-sm text-gray-500 text-center py-6">${c.empty}</p>`;
+            return `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${commentsCache.map(m => `
+                <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img src="https://ui-avatars.com/api/?background=2563eb&color=fff&bold=true&size=80&name=${encodeURIComponent(m.name || '?')}" alt="" class="w-10 h-10 rounded-full">
+                        <div class="min-w-0">
+                            <div class="font-bold text-sm text-gray-900 dark:text-white truncate">${escapeHtml(m.name || '')}</div>
+                            <div class="text-xs text-gray-400">${m.createdAt ? fmtDate(m.createdAt) : ''}</div>
+                        </div>
+                    </div>
+                    <div class="text-sm mb-2">${starsHtml(m.rating)}</div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line break-words">${escapeHtml(m.text || '')}</p>
+                </div>`).join('')}</div>`;
+        }
+
+        function refreshCommentsList() {
+            const box = document.getElementById('comments-list');
+            if (box) box.innerHTML = renderCommentsList();
+            const cnt = document.getElementById('comments-count');
+            if (cnt) cnt.textContent = commentsCache.length ? commentsCache.length + ' ' + ct().count : '';
+        }
+
+        function renderCommentsSection() {
+            const c = ct();
+            return `
+                <section class="py-10" id="comments-section">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-8">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">${c.title} <span id="comments-count" class="text-sm font-medium text-gray-400">${commentsCache.length ? commentsCache.length + ' ' + c.count : ''}</span></h2>
+                            <p class="text-gray-500 text-sm mt-1">${c.desc}</p>
+                        </div>
+                        <button onclick="openCommentModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-comment-dots"></i> ${c.btn}
+                        </button>
+                    </div>
+                    <div id="comments-list">${renderCommentsList()}</div>
+                </section>`;
+        }
+
+        function openCommentModal() {
+            const c = ct();
+            commentRating = 5;
+            let m = document.getElementById('comment-modal');
+            if (!m) { m = document.createElement('div'); m.id = 'comment-modal'; document.body.appendChild(m); }
+            m.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
+            m.onclick = e => { if (e.target === m) closeCommentModal(); };
+            const cls = 'w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 dark:text-white';
+            m.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+                    <button type="button" onclick="closeCommentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                    <h3 class="text-2xl font-bold mb-5 text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-comment-dots text-blue-600"></i> ${c.modalTitle}</h3>
+                    <form onsubmit="submitComment(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">${c.name}</label>
+                            <input type="text" id="comment-name" maxlength="60" required placeholder="${c.namePh}" value="${escapeHtml(currentUser && currentUser.name ? currentUser.name : '')}" class="${cls}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">${c.rating}</label>
+                            <div id="comment-stars" class="flex gap-1 text-2xl">${[1, 2, 3, 4, 5].map(i => `<button type="button" onclick="setCommentRating(${i})" data-star="${i}" class="text-amber-400 hover:scale-110 transition"><i class="fa-solid fa-star"></i></button>`).join('')}</div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">${c.text}</label>
+                            <textarea id="comment-text" rows="4" maxlength="500" required placeholder="${c.textPh}" class="${cls}"></textarea>
+                        </div>
+                        <button type="submit" id="comment-submit-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2"><i class="fa-solid fa-paper-plane"></i> ${c.send}</button>
+                    </form>
+                </div>`;
+            setTimeout(() => { const el = document.getElementById(currentUser && currentUser.name ? 'comment-text' : 'comment-name'); if (el) el.focus(); }, 50);
+        }
+
+        function closeCommentModal() {
+            const m = document.getElementById('comment-modal');
+            if (m) m.className = 'hidden';
+        }
+
+        function setCommentRating(n) {
+            commentRating = n;
+            document.querySelectorAll('#comment-stars [data-star]').forEach(b => {
+                b.firstElementChild.className = 'fa-solid fa-star ' + (parseInt(b.dataset.star) <= n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600');
+            });
+        }
+
+        function commentToast(msg) {
+            const d = document.createElement('div');
+            d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-2xl';
+            d.textContent = msg;
+            document.body.appendChild(d);
+            setTimeout(() => d.remove(), 3000);
+        }
+
+        function submitComment(e) {
+            e.preventDefault();
+            const c = ct();
+            const name = document.getElementById('comment-name').value.trim();
+            const text = document.getElementById('comment-text').value.trim();
+            if (name.length < 2) { alert(c.needName); return; }
+            if (text.length < 3) { alert(c.needText); return; }
+            if (!cloudDb) { alert(c.off); return; }
+            const last = parseInt(localStorage.getItem('eduflow_last_comment_at')) || 0;
+            if (Date.now() - last < 30000) { alert(c.wait); return; }
+            const btn = document.getElementById('comment-submit-btn');
+            btn.disabled = true; btn.classList.add('opacity-60');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${c.sending}`;
+            cloudDb.collection('comments').add({
+                name: name.slice(0, 60),
+                text: text.slice(0, 500),
+                rating: commentRating,
+                lang: currentLang,
+                createdAt: new Date().toISOString()
+            }).then(() => {
+                localStorage.setItem('eduflow_last_comment_at', String(Date.now()));
+                closeCommentModal();
+                commentToast(c.thanks);
+            }).catch(err => {
+                console.error('Sharx yozish xatosi:', err);
+                btn.disabled = false; btn.classList.remove('opacity-60');
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${c.send}`;
+                alert(c.sendErr);
+            });
+        }
+
         initCloud();
+        initComments();
         // Avval ro'yxatdan o'tgan (reyestrda yo'q) foydalanuvchini ham qo'shib qo'yish
         registerUserInRegistry(currentUser);
         checkAccountStatus();
@@ -1322,6 +1511,8 @@
                             </div>`).join('')}
                     </div>
                 </section>
+
+                ${renderCommentsSection()}
 
                 <section class="py-10 max-w-3xl mx-auto">
                     <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">${h.faqTitle}</h2>
