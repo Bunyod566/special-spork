@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -1092,7 +1093,9 @@
                 off: "Sharxlar uchun Firebase ulanmagan.", error: "Sharxlarni yuklab bo'lmadi. Firebase Console > Firestore > Rules bo'limida 'comments' uchun ruxsat bering.",
                 needName: "Ismingizni kiriting (kamida 2 belgi).", needText: "Sharx matnini yozing (kamida 3 belgi).",
                 wait: "Iltimos, keyingi sharxni yuborishdan oldin biroz kuting.", sendErr: "Sharx yuborilmadi. Internetni va Firebase ruxsatlarini tekshiring.",
-                thanks: "Rahmat! Sharxingiz qo'shildi.", count: "ta sharx"
+                thanks: "Rahmat! Sharxingiz qo'shildi.", count: "ta sharx",
+                del: "O'chirish", delConfirm: "Sharxingizni o'chirmoqchimisiz?", deleted: "Sharx o'chirildi.", delErr: "Sharxni o'chirib bo'lmadi.",
+                authErr: "Anonim kirish yoqilmagan. Firebase Console > Authentication > Sign-in method > Anonymous ni yoqing."
             },
             en: {
                 title: "User comments", desc: "Leave your opinion about the platform — everyone can see it",
@@ -1102,7 +1105,9 @@
                 off: "Firebase is not connected for comments.", error: "Could not load comments. In Firebase Console > Firestore > Rules, allow access to 'comments'.",
                 needName: "Enter your name (at least 2 characters).", needText: "Write your comment (at least 3 characters).",
                 wait: "Please wait a little before sending another comment.", sendErr: "Comment was not sent. Check your internet and Firebase rules.",
-                thanks: "Thank you! Your comment was added.", count: "comments"
+                thanks: "Thank you! Your comment was added.", count: "comments",
+                del: "Delete", delConfirm: "Delete your comment?", deleted: "Comment deleted.", delErr: "Could not delete the comment.",
+                authErr: "Anonymous sign-in is not enabled. In Firebase Console > Authentication > Sign-in method, enable Anonymous."
             },
             ru: {
                 title: "Отзывы пользователей", desc: "Оставьте своё мнение о платформе — его увидят все",
@@ -1112,18 +1117,27 @@
                 off: "Firebase для отзывов не подключён.", error: "Не удалось загрузить отзывы. В Firebase Console > Firestore > Rules разрешите доступ к 'comments'.",
                 needName: "Введите имя (минимум 2 символа).", needText: "Напишите отзыв (минимум 3 символа).",
                 wait: "Пожалуйста, подождите перед отправкой следующего отзыва.", sendErr: "Отзыв не отправлен. Проверьте интернет и правила Firebase.",
-                thanks: "Спасибо! Ваш отзыв добавлен.", count: "отзывов"
+                thanks: "Спасибо! Ваш отзыв добавлен.", count: "отзывов",
+                del: "Удалить", delConfirm: "Удалить ваш отзыв?", deleted: "Отзыв удалён.", delErr: "Не удалось удалить отзыв.",
+                authErr: "Анонимный вход не включён. В Firebase Console > Authentication > Sign-in method включите Anonymous."
             }
         };
         let commentsCache = [];
         let commentsState = 'off'; // off | loading | on | error
         let commentRating = 5;
+        let commentsUid = null; // anonim foydalanuvchi ID (har bir brauzer uchun alohida)
 
         function ct() { return commentsText[currentLang] || commentsText.uz; }
 
         function initComments() {
             if (!cloudDb) { commentsState = 'off'; return; }
             commentsState = 'loading';
+            try {
+                if (firebase.auth) {
+                    firebase.auth().onAuthStateChanged(u => { commentsUid = u ? u.uid : null; refreshCommentsList(); });
+                    firebase.auth().signInAnonymously().catch(err => console.error('Anonim kirish xatosi:', err));
+                }
+            } catch (e) { console.error('Auth init xatosi:', e); }
             cloudDb.collection('comments').orderBy('createdAt', 'desc').limit(60).onSnapshot(snap => {
                 const list = [];
                 snap.forEach(d => list.push({ id: d.id, ...d.data() }));
@@ -1156,6 +1170,7 @@
                             <div class="font-bold text-sm text-gray-900 dark:text-white truncate">${escapeHtml(m.name || '')}</div>
                             <div class="text-xs text-gray-400">${m.createdAt ? fmtDate(m.createdAt) : ''}</div>
                         </div>
+                        ${(m.uid && m.uid === commentsUid) ? `<button type="button" onclick="deleteComment('${m.id}')" title="${c.del}" class="ml-auto text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded-lg transition flex items-center gap-1 shrink-0"><i class="fa-solid fa-trash"></i> ${c.del}</button>` : ''}
                     </div>
                     <div class="text-sm mb-2">${starsHtml(m.rating)}</div>
                     <p class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line break-words">${escapeHtml(m.text || '')}</p>
@@ -1229,6 +1244,16 @@
             });
         }
 
+        function deleteComment(id) {
+            const c = ct();
+            const m = commentsCache.find(x => x.id === id);
+            if (!m || !m.uid || m.uid !== commentsUid) return;
+            if (!confirm(c.delConfirm)) return;
+            cloudDb.collection('comments').doc(id).delete()
+                .then(() => commentToast(c.deleted))
+                .catch(err => { console.error('Sharx o\'chirish xatosi:', err); alert(c.delErr); });
+        }
+
         function commentToast(msg) {
             const d = document.createElement('div');
             d.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-2xl';
@@ -1245,6 +1270,7 @@
             if (name.length < 2) { alert(c.needName); return; }
             if (text.length < 3) { alert(c.needText); return; }
             if (!cloudDb) { alert(c.off); return; }
+            if (!commentsUid) { alert(c.authErr); return; }
             const last = parseInt(localStorage.getItem('eduflow_last_comment_at')) || 0;
             if (Date.now() - last < 30000) { alert(c.wait); return; }
             const btn = document.getElementById('comment-submit-btn');
@@ -1255,6 +1281,7 @@
                 text: text.slice(0, 500),
                 rating: commentRating,
                 lang: currentLang,
+                uid: commentsUid,
                 createdAt: new Date().toISOString()
             }).then(() => {
                 localStorage.setItem('eduflow_last_comment_at', String(Date.now()));
