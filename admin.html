@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -1317,7 +1318,133 @@
         if (userChannel) userChannel.onmessage = () => refreshAdminUserStats();
         setInterval(refreshAdminUserStats, 2000);
 
+
+        // ===== ADMIN: SHARXLARNI BOSHQARISH (Firestore: "comments") =====
+        // Sharxlarni o'chirish uchun Firebase admin akkaunti (Email/Password) bilan kirish kerak.
+        let adminComments = [];
+        let adminCommentsState = 'off'; // off | loading | on | error
+        let adminFbUser = null;
+        let adminCommentsStarted = false;
+
+        function initAdminComments() {
+            if (!cloudDb || adminCommentsStarted) return;
+            adminCommentsStarted = true;
+            adminCommentsState = 'loading';
+            try {
+                if (firebase.auth) {
+                    firebase.auth().onAuthStateChanged(u => { adminFbUser = (u && u.email) ? u : null; acmRenderAuth(); });
+                }
+            } catch (e) { console.error('Auth init xatosi:', e); }
+            cloudDb.collection('comments').orderBy('createdAt', 'desc').limit(200).onSnapshot(snap => {
+                const list = [];
+                snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                adminComments = list;
+                adminCommentsState = 'on';
+                acmRenderList();
+            }, err => {
+                console.error('Sharxlar xatosi:', err);
+                adminCommentsState = 'error';
+                acmRenderList();
+            });
+        }
+
+        function acmStars(n) {
+            n = Math.max(1, Math.min(5, parseInt(n) || 5));
+            return Array.from({ length: 5 }, (_, i) => `<i class="fa-solid fa-star ${i < n ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'}"></i>`).join('');
+        }
+
+        function adminCommentsMount() {
+            const box = document.getElementById('admin-comments-section');
+            if (!box) return;
+            box.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-comments text-amber-500"></i> Sharxlarni boshqarish
+                        <span id="acm-count" class="text-xs font-medium text-gray-400"></span>
+                    </h2>
+                    <div id="acm-auth" class="mb-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700"></div>
+                    <div id="acm-list" class="space-y-3 max-h-[32rem] overflow-y-auto pr-1"></div>
+                </div>`;
+            acmRenderAuth();
+            acmRenderList();
+        }
+
+        function acmRenderAuth() {
+            const b = document.getElementById('acm-auth');
+            if (!b) return;
+            const inp = 'px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500';
+            if (adminFbUser) {
+                b.innerHTML = `<div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span class="text-green-600 dark:text-green-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Moderator rejimi yoqilgan: ${escapeHtml(adminFbUser.email)}</span>
+                    <button type="button" onclick="acmSignOut()" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg font-bold">Chiqish</button>
+                </div>`;
+            } else {
+                b.innerHTML = `<form onsubmit="acmSignIn(event)" class="flex flex-wrap gap-2 items-center">
+                    <div class="w-full text-xs text-gray-500 dark:text-gray-400">Sharxlarni o'chirish uchun Firebase admin akkaunti bilan kiring (bir marta, brauzer eslab qoladi).</div>
+                    <input id="acm-email" type="email" required placeholder="Admin email" class="${inp} flex-1 min-w-[160px]">
+                    <input id="acm-pass" type="password" required placeholder="Parol" class="${inp} flex-1 min-w-[120px]">
+                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold rounded-lg text-sm transition">Kirish</button>
+                </form>`;
+            }
+        }
+
+        function acmRenderList() {
+            const box = document.getElementById('acm-list');
+            const cnt = document.getElementById('acm-count');
+            if (cnt) cnt.textContent = adminCommentsState === 'on' ? adminComments.length + ' ta' : '';
+            if (!box) return;
+            if (adminCommentsState === 'off') { box.innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Firebase ulanmagan.</p>'; return; }
+            if (adminCommentsState === 'error') { box.innerHTML = '<p class="text-sm text-red-600 dark:text-red-400 text-center py-6">Sharxlarni yuklab bo\'lmadi. Firestore Rules da \'comments\' o\'qishga ruxsat berilganini tekshiring.</p>'; return; }
+            if (adminCommentsState === 'loading') { box.innerHTML = '<p class="text-sm text-gray-500 text-center py-6"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Yuklanmoqda...</p>'; return; }
+            if (!adminComments.length) { box.innerHTML = '<p class="text-sm text-gray-500 text-center py-6">Hozircha sharxlar yo\'q.</p>'; return; }
+            box.innerHTML = adminComments.map(m => `
+                <div class="flex gap-3 items-start p-4 rounded-xl border border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/30">
+                    <img src="https://ui-avatars.com/api/?background=f59e0b&color=111&bold=true&size=80&name=${encodeURIComponent(m.name || '?')}" alt="" class="w-10 h-10 rounded-full shrink-0">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span class="font-bold text-sm text-gray-900 dark:text-white">${escapeHtml(m.name || '')}</span>
+                            <span class="text-xs">${acmStars(m.rating)}</span>
+                            <span class="text-xs text-gray-400">${m.createdAt ? fmtDate(m.createdAt) : ''}</span>
+                            ${m.lang ? `<span class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold uppercase">${escapeHtml(m.lang)}</span>` : ''}
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-line break-words">${escapeHtml(m.text || '')}</p>
+                    </div>
+                    <button type="button" onclick="acmDelete('${m.id}')" title="O'chirish" class="shrink-0 px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+                </div>`).join('');
+        }
+
+        function acmSignIn(e) {
+            e.preventDefault();
+            const email = document.getElementById('acm-email').value.trim();
+            const pass = document.getElementById('acm-pass').value;
+            firebase.auth().signInWithEmailAndPassword(email, pass).catch(err => {
+                console.error('Admin kirish xatosi:', err);
+                if (err.code === 'auth/operation-not-allowed') alert("Firebase Console > Authentication > Sign-in method da Email/Password ni yoqing.");
+                else if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-login-credentials', 'auth/invalid-email'].includes(err.code)) alert("Email yoki parol noto'g'ri.");
+                else alert('Kirish xatosi: ' + (err.message || err.code));
+            });
+        }
+
+        function acmSignOut() {
+            firebase.auth().signOut().catch(err => console.error(err));
+        }
+
+        function acmDelete(id) {
+            if (!adminFbUser) {
+                alert("Avval yuqoridagi formada Firebase admin akkaunti bilan kiring.");
+                const el = document.getElementById('acm-email'); if (el) el.focus();
+                return;
+            }
+            const m = adminComments.find(x => x.id === id);
+            if (!confirm('"' + (m ? m.name : '') + '" sharxini o\'chirmoqchimisiz?')) return;
+            cloudDb.collection('comments').doc(id).delete().catch(err => {
+                console.error('Sharx o\'chirish xatosi:', err);
+                alert("O'chirib bo'lmadi: " + (err.code === 'permission-denied' ? "ruxsat yo'q (Firestore Rules ni tekshiring)." : (err.message || err.code)));
+            });
+        }
+
         initCloud();
+        initAdminComments();
         // Avval ro'yxatdan o'tgan (reyestrda yo'q) foydalanuvchini ham qo'shib qo'yish
         registerUserInRegistry(currentUser);
         checkAccountStatus();
@@ -2298,9 +2425,13 @@
                             </table>
                         </div>
                     </div>
+
+                    <!-- SHARXLARNI BOSHQARISH -->
+                    <div id="admin-comments-section"></div>
                 </div>
             `;
             refreshAdminUserStats();
+            adminCommentsMount();
         }
 
         // TASKS VIEW
